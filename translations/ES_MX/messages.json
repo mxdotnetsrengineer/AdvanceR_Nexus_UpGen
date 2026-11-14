@@ -1,0 +1,24 @@
+{
+    "messages": {
+        "decryption_complete": "¡Lectura y desencriptación del archivo completada!",
+        "banks": {
+            "decryption_start": "INICIANDO LECTURA: Tabla principal de bancos en {offset}",
+            "empty_table_position": "Posición {position} de la tabla: [Vacía o reservada]",
+            "table_pointer_found": "Posición {position} de la tabla -> Apunta al offset: {offset}",
+            "bank_entry": "Banco {bank_id} | Inicio de mapas: {offset}",
+            "map_entry": "Mapa {map_id} | Nombre: {name} | Cabecera: {header} | Tamaño: {width}x{height}"
+        },
+        "games": {
+            "starting_modification": "Iniciando modificación en {game_name}..."
+        }
+    },
+    "events": {
+        "total_events": "Eventos totales: {count}",
+        "new_script": "Nuevo script asignado en: {offset}",
+        "pokeball_failed": "[FALLO Evento] No queda espacio libre en el juego para asignar el script"
+    },
+    "items": {
+        "item_entry": "ID de objeto {item_id} | Nombre: {item_name}",
+        "pokeball_repointed": "[POKÉBOLA REAPUNTADA] Objeto asignado ID: {item_id} | Nombre: {item_name}"
+    }
+}

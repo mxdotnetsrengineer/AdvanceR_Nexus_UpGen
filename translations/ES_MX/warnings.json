@@ -1,0 +1,5 @@
+{
+    "warnings": {
+        "invalid_items_pointer": "El puntero de la tabla de objetos no es válido o está fuera de los límites del juego."
+    }
+}
