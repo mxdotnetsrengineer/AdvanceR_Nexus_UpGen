@@ -1,0 +1,10 @@
+{
+    "errors": {
+        "no_game" : "Unsupported game:",
+        "invalid_log" : "Invalid Log Level",
+        "game_not_found": "Please place your game '{game_path}' in this folder.",
+        "no_game_data": "No game data to save. Call open_game() first.",
+        "missing_output_path": "Missing 'MODIFIED_GAME' path in configuration.",
+        "no_game_loaded": "No game loaded. Call open_game() first."
+    }
+}
