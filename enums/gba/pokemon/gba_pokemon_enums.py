@@ -1,7 +1,7 @@
-from enums.enum_base import keys_from_str
+from decorators.app_decorators import keys_from_str
 
 @keys_from_str
-class FireRedKeyIndex:
+class GBAPokemonKeyIndex:
     """
     A, B, C, D, E, F, SPACE_1, DOT,
     G, H, I, J, K, L, SPACE_2, COMMA,
@@ -10,13 +10,13 @@ class FireRedKeyIndex:
     """
 
 @keys_from_str
-class FireRedLogicKeyIndex:
+class GBAPokemonLogicKeyIndex:
     __doc__ = ", ".join(
-        k.name for k in FireRedKeyIndex if not k.name.startswith("SPACE")
+        k.name for k in GBAPokemonKeyIndex if not k.name.startswith("SPACE")
     )
 
 @keys_from_str
-class FireRedOthersKeyIndex:
+class GBAPokemonOthersKeyIndex:
      """
     NUM_0, NUM_1, NUM_2, NUM_3, NUM_4, SPACE_1
     NUM_5, NUM_6, NUM_7, NUM_8, NUM_9, SPACE_2
@@ -25,7 +25,7 @@ class FireRedOthersKeyIndex:
     """
 
 @keys_from_str
-class FireRedOthersLogicKeyIndex:
+class GBAPokemonOthersLogicKeyIndex:
     __doc__ = ", ".join(
-        k.name for k in FireRedOthersKeyIndex if not k.name.startswith("SPACE")
+        k.name for k in GBAPokemonOthersKeyIndex if not k.name.startswith("SPACE")
     )

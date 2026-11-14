@@ -1,4 +1,5 @@
 {
+  "USE_FEATURE_FLAGS" : false,
   "RANDOMIZE_POKEBALLS_ITEMS": true,
   "ADD_SPANISH_CHARS": true,
   "ONLY_DATABASE": false,
