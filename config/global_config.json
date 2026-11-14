@@ -1,0 +1,7 @@
+{
+  "RANDOMIZE_POKEBALLS_ITEMS": true,
+  "ADD_SPANISH_CHARS": true,
+  "ONLY_DATABASE": false,
+  "CURRENT_LANGUAGE": "EN_US",
+  "LOG_TYPE" : "INFO"
+}

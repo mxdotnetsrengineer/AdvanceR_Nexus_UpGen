@@ -1,0 +1,5 @@
+{
+    "warnings": {
+        "invalid_items_pointer": "Items pointer offset is invalid or out of game file bounds."
+    }
+}
