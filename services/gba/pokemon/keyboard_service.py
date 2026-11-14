@@ -1,8 +1,11 @@
+from typing import Any
 from enums.gba.games_enum import AvailableGames
-from enums.gba.pokemon.fire_red_enums import FireRedKeyIndex, FireRedLogicKeyIndex, FireRedOthersKeyIndex, FireRedOthersLogicKeyIndex
+from enums.gba.pokemon.gba_pokemon_enums import GBAPokemonKeyIndex, GBAPokemonLogicKeyIndex, GBAPokemonOthersKeyIndex, GBAPokemonOthersLogicKeyIndex
 from models.gba.pokemon.game_ui_keyboard import GameUIKeyboard
 from models.gba.pokemon.ui_keyboard_patch import UIKeyboardPatch
+from decorators.app_decorators import when_enabled,skip_when_disabled
 from helpers.gba.games_helper import GBA_POKEMON_III_CHAR_TABLE
+from services.config_service import ConfigService
 
 class GBAKeyboardService:
     def __init__(self, config_service: ConfigService):
@@ -12,6 +15,8 @@ class GBAKeyboardService:
         self.config = config_service
 
     # Public Methods
+    @when_enabled("ADD_SPANISH_CHARS")
+    @skip_when_disabled("ONLY_DATABASE")
     def set_spanish_chars(
         self,
         game_file: bytearray,
@@ -22,38 +27,42 @@ class GBAKeyboardService:
         self.keyboards = game_keyboards
         self.keyboards_logic = game_keyboards.logic
 
-        #UI Sprites & Logic
+        #UI Sprites & Logic  True for more than one ocurrence, For example some games has 2 UPPER Keyboards in Memory
+        keyboards_ocurrences = [2, 1, 1]
         match game:
-            case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED:
-                self._spanish_replace_fire_red()
+            case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED | AvailableGames.EMERALD:
+                self._spanish_replace_pokemon_gba()
 
         self._write_keyboard_to_game_file(
-            game_file, game, self.keyboards.default, self.keyboards.logic.default, game_keyboards.logic.offsets[0], keyboard_separators, True
+            game_file, game, self.keyboards.default, self.keyboards.logic.default, game_keyboards.logic.offsets[0], keyboard_separators, 
+            keyboards_ocurrences[0]
         )
         self._write_keyboard_to_game_file(
-            game_file, game, self.keyboards.lower, self.keyboards.logic.lower, game_keyboards.logic.offsets[1], keyboard_separators, False
+            game_file, game, self.keyboards.lower, self.keyboards.logic.lower, game_keyboards.logic.offsets[1], keyboard_separators, 
+            keyboards_ocurrences[1]
         )
         self._write_keyboard_to_game_file(
-            game_file, game, self.keyboards.others, self.keyboards.logic.others, game_keyboards.logic.offsets[2], keyboard_separators, False
+            game_file, game, self.keyboards.others, self.keyboards.logic.others, game_keyboards.logic.offsets[2], keyboard_separators,
+            keyboards_ocurrences[2]
         )
     # End Public Methods
 
     # Private Methods
-    def _spanish_replace_fire_red(self) -> None:
+    def _spanish_replace_pokemon_gba(self) -> None:
 
         main_keyboards_shared_indexes = dict(
-            visual_remove_indexes=[FireRedKeyIndex.M],
-            visual_insert_indexes=[FireRedKeyIndex.N],
-            visual_relocate_indexes=[FireRedKeyIndex.SPACE_2],
-            logic_remove_indexes=[FireRedLogicKeyIndex.M],
-            logic_insert_indexes=[FireRedLogicKeyIndex.N + 1],
+            visual_remove_indexes=[GBAPokemonKeyIndex.M],
+            visual_insert_indexes=[GBAPokemonKeyIndex.N],
+            visual_relocate_indexes=[GBAPokemonKeyIndex.SPACE_2],
+            logic_remove_indexes=[GBAPokemonLogicKeyIndex.M],
+            logic_insert_indexes=[GBAPokemonLogicKeyIndex.N + 1],
             # Space after L + 1 + Removed Character
-            logic_relocate_indexes=[FireRedLogicKeyIndex.L + 2],
+            logic_relocate_indexes=[GBAPokemonLogicKeyIndex.L + 2],
             logic_null_indexes=[
-                FireRedLogicKeyIndex.F + 1,
-                FireRedLogicKeyIndex.L + 1,
-                FireRedLogicKeyIndex.S + 1,
-                FireRedLogicKeyIndex.Z + 1,
+                GBAPokemonLogicKeyIndex.F + 1,
+                GBAPokemonLogicKeyIndex.L + 1,
+                GBAPokemonLogicKeyIndex.S + 1,
+                GBAPokemonLogicKeyIndex.Z + 1,
             ],
             logic_null_bytes=[bytearray(b"\x00") for _ in range(4)],
         )
@@ -76,18 +85,18 @@ class GBAKeyboardService:
             visual_keyboard=self.keyboards.others,
             logic_keyboard=self.keyboards.logic.others,
             visual_remove_indexes=[
-                FireRedOthersKeyIndex.SPACE_1,
-                FireRedOthersKeyIndex.SPACE_2,
+                GBAPokemonOthersKeyIndex.SPACE_1,
+                GBAPokemonOthersKeyIndex.SPACE_2,
             ],
             visual_insert_indexes=[
                 # Removed Space - 1
-                FireRedOthersKeyIndex.EXCLAMATION - 2,
-                FireRedOthersKeyIndex.QUESTION - 1,
+                GBAPokemonOthersKeyIndex.EXCLAMATION - 2,
+                GBAPokemonOthersKeyIndex.QUESTION - 1,
             ],
             logic_remove_indexes=[],
             logic_insert_indexes=[
-                FireRedOthersLogicKeyIndex.EXCLAMATION,
-                FireRedOthersLogicKeyIndex.QUESTION,
+                GBAPokemonOthersLogicKeyIndex.EXCLAMATION,
+                GBAPokemonOthersLogicKeyIndex.QUESTION,
             ],
             characters_to_insert=[
                 self.allowed_chars["¡"],
@@ -96,10 +105,10 @@ class GBAKeyboardService:
             # 0s after 5, after !, after - , after last char , 2 is because (4 + 1 + Space) ,
             # 3 is because (9 + 1 + Space + Removed Space) or for total removed spaces + 1. Indexes are for unmodified keyboard.
             logic_null_indexes=[
-                FireRedOthersLogicKeyIndex.NUM_4 + 2,
-                FireRedOthersLogicKeyIndex.NUM_9 + 3,
-                FireRedOthersLogicKeyIndex.HYPHEN + 3,
-                FireRedOthersLogicKeyIndex.QUOTE_SINGLE_CLOSE + 3,
+                GBAPokemonOthersLogicKeyIndex.NUM_4 + 2,
+                GBAPokemonOthersLogicKeyIndex.NUM_9 + 3,
+                GBAPokemonOthersLogicKeyIndex.HYPHEN + 3,
+                GBAPokemonOthersLogicKeyIndex.QUOTE_SINGLE_CLOSE + 3,
             ],
             logic_null_bytes=[
                 bytearray([0x00, 0x00]),
@@ -121,10 +130,10 @@ class GBAKeyboardService:
         logic_keyboard: bytearray,
         logic_offset: int,
         keyboard_separators: list[str],
-        multiple_ui_keyboards: bool = False,
+        keyboards_ocurrences: int = 1,
     ) -> None:
         keyboard_offset, keyboard_bytes = self._get_total_keyboard_bytes(
-            game_file, game, visual_keyboard, keyboard_separators, multiple_ui_keyboards
+            game_file, game, visual_keyboard, keyboard_separators, keyboards_ocurrences
         )
         game_file[keyboard_offset : keyboard_offset + len(keyboard_bytes)] = keyboard_bytes
         game_file[logic_offset : logic_offset + len(logic_keyboard)] = logic_keyboard
@@ -234,7 +243,7 @@ class GBAKeyboardService:
 
     def _get_total_keyboard_bytes(
         self, game_file: bytearray, game: AvailableGames, ui_keyboard: list[list[tuple[int, int]]], hex_separators: list[str],
-        multiple_ui_keyboards: bool = True,
+        keyboards_ocurrences: int = 1,
     ) -> list[Any]:
         separators = [
             int(hex_str, 16)
@@ -247,16 +256,7 @@ class GBAKeyboardService:
             for byte in (*separators, spacing, char)
         )
 
-        match game:
-            case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED:
-                if multiple_ui_keyboards:
-                    #First Index Keybord To Define
-                    #Second Index Naming Screen
-                    keyboard_offset = (data := game_file).index(first_keyboard_row, data.index(first_keyboard_row) + 1)
-                else:
-                    keyboard_offset = game_file.index(first_keyboard_row)
-            case _:
-                keyboard_offset = game_file.index(first_keyboard_row)
+        keyboard_offset = (data := game_file).index(first_keyboard_row, data.index(first_keyboard_row) + (keyboards_ocurrences - 1))
         
         final_keyboard = bytearray();
         character_index = 0
