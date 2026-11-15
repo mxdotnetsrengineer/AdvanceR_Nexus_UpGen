@@ -3,8 +3,6 @@ import os
 
 current_config = {}
 
-GAMES = ["fire_red", "radical_red", "leaf_green", "leaf_green_custom", "emerald", "emerald_kaizo"]
-
 def init_global_config(game_key):
     global current_config
 
@@ -28,6 +26,16 @@ def init_global_config(game_key):
     else:
         missing_game = True
     
+    # --- FEATURE FLAGS ---
+    if raw_data.get("USE_FEATURE_FLAGS") is True:
+        flags_path = "config/gba/pokemon/feature_flags.json"  # Ajusta el nombre si es distinto
+        if os.path.exists(flags_path):
+            with open(flags_path, "r", encoding="utf-8") as f:
+                feature_flags = json.load(f)
+                for flag_key, flag_value in feature_flags.items():
+                    raw_data.setdefault(flag_key, flag_value)
+    # ------------------------------------------
+
     processed_config = {}
     for key, value in raw_data.items():
         if isinstance(value, str) and value.startswith("0x"):

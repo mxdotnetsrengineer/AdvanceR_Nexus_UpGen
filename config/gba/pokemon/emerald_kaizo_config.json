@@ -1,0 +1,29 @@
+{
+    "GAME_NAME": "Pokemon Emerald",
+    "ORIGINAL_GAME": "Pokemon - Emerald Version (USA, Europe).gba",
+    "MODIFIED_GAME": "Pokemon - Emerald Version_random.gba",
+    "GAME_START" : "0x00",
+    "MAX_ROM_SIZE" : "0x1000000",
+    "FREE_SPACE_START": "0xF00000",
+    
+    "CHARACTER_BYTE_SIZE": 32,
+    "DEFAULT_UI_KEYBOARD_SEPARATORS" : ["0xFC", "0x11"],
+    "UPPER_KEYBOARD_CHARS_OFFSET": "0x58BE60",
+    "LOWER_KEYBOARD_CHARS_OFFSET": "0x58BE40",
+    "OTHERS_KEYBOARD_CHARS_OFFSET": "0x58BE80",
+
+    "BANK_TABLE_OFFSET": "0x84aa4",
+    "BANK_TABLE_BANKS_POSITION" : 0,
+    "BANKS_TO_PRINT": 34, 
+    
+    "MAP_NAMES_TABLE_OFFSET": "0x5A147C",
+    "REGION_MAP_BYTE" : 20,
+    "MAPS_PER_BANK_TO_PRINT": 90,
+    "MAP_NAME_ENTRY_SIZE": 8,
+    "MAP_NAME_TEXT_OFFSET": 4,
+
+    "MAX_ITEM_ID": 376,
+    "POKEBALL_SPRITE_ID": 59,
+    "ITEMS_POINTER_OFFSET": "0x1C8",
+    "ITEM_STRUCT_SIZE": 44
+}

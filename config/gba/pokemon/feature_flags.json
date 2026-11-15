@@ -1,0 +1,5 @@
+{
+    "ALLOCATE_BANKS" : true,
+    "ALLOCATE_MAPS" : true,
+    "MAPS_EVENTS" : true
+}
