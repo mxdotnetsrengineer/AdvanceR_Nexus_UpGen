@@ -9,6 +9,7 @@ from services.gba.memory_service import GBAMemoryService
 from services.gba.pokemon.keyboard_service import GBAKeyboardService
 from games.gba.gba_game import GBAGame
 
+#This file is not user anymore, we are goint to keep it as a factory example.
 class CurrentGameFactory:
     @staticmethod
     def create(
@@ -20,10 +21,10 @@ class CurrentGameFactory:
 
         base_path = Path(__file__).resolve().parent.parent
         translations_path = base_path / "translations"
-        translations_service = TranslationsService(translations_path, config_service.get_value("CURRENT_LANGUAGE"))
+        translations_service = TranslationsService(translations_path, config_service.get("CURRENT_LANGUAGE"))
 
-        log_service = LogService(translations_service, config_service.get_value("LOG_TYPE"))
-        file_service = FileService(log_service, translations_service)
+        log_service = LogService(translations_service, config_service.get("LOG_TYPE"))
+        file_service = FileService(log_service, translations_service, config_service)
         memory_service = GBAMemoryService(translations_service)
         
         # Game
@@ -48,6 +49,35 @@ class CurrentGameFactory:
                 keyboard_service = GBAKeyboardService(config_service)
 
                 return FireRedGame(
+                    game=game,
+                    file_service=file_service,
+                    log_service=log_service,
+                    memory_service=memory_service,
+                    config_service=config_service,
+                    bank_service=bank_service,
+                    keyboard_service=keyboard_service,
+                    translations_service=translations_service
+                )
+            case AvailableGames.EMERALD:
+                from games.gba.pokemon.emerald_game import EmeraldGame
+                from services.gba.pokemon.bank_service import BankService
+                from services.gba.pokemon.event_service import EventService
+                from services.gba.pokemon.item_service import ItemService
+                
+                item_service = ItemService(config_service=config_service,memory_service=memory_service,log_service=log_service,
+                    translations_service=translations_service,
+                )
+                event_service = EventService(
+                    config_service=config_service,memory_service=memory_service,log_service=log_service,translations_service=translations_service,
+                        item_service=item_service,
+                )
+                bank_service = BankService(
+                    config_service=config_service,memory_service=memory_service,log_service=log_service,translations_service=translations_service,
+                        event_service=event_service,
+                )
+                keyboard_service = GBAKeyboardService(config_service)
+
+                return EmeraldGame(
                     game=game,
                     file_service=file_service,
                     log_service=log_service,

@@ -21,7 +21,7 @@ class ItemService:
     # Public Methods
     def get_all_items(self, game_file: bytearray) -> dict[int, str]:
         base_items_offset = self.memory.gba_pointer_to_file_offset(
-            game_file, self.config.get_value("ITEMS_POINTER_OFFSET")
+            game_file, self.config.get("ITEMS_POINTER_OFFSET")
         )
 
         if not base_items_offset or base_items_offset >= len(game_file):
@@ -29,7 +29,7 @@ class ItemService:
             return {}
 
         items: dict[int, str] = {}
-        max_item_id = self.config.get_value("MAX_ITEM_ID")
+        max_item_id = self.config.get("MAX_ITEM_ID")
 
         for item_id in range(max_item_id + 1):
             item_name = self.get_item_name(game_file, item_id)
@@ -44,12 +44,12 @@ class ItemService:
 
         return items
     def get_item_name(self, game_file: bytearray, item_id: int) -> str:
-        base_items_offset = self.memory.gba_pointer_to_file_offset(game_file, self.config.get_value("ITEMS_POINTER_OFFSET"))
+        base_items_offset = self.memory.gba_pointer_to_file_offset(game_file, self.config.get("ITEMS_POINTER_OFFSET"))
 
         if not base_items_offset or base_items_offset >= len(game_file):
             return "UNKNOWN"
 
-        target_item_offset = base_items_offset + (item_id * self.config.get_value("ITEM_STRUCT_SIZE"))
+        target_item_offset = base_items_offset + (item_id * self.config.get("ITEM_STRUCT_SIZE"))
         if target_item_offset >= len(game_file):
             return "UNKNOWN"
 
@@ -71,7 +71,7 @@ class ItemService:
         random_new_item = -1
 
         while True:
-            random_new_item = random.randint(1, self.config.get_value("MAX_ITEM_ID"))
+            random_new_item = random.randint(1, self.config.get("MAX_ITEM_ID"))
             item_name = self.get_item_name(game_file, random_new_item)
             if "???" in item_name or item_name == "UNKNOWN":
                 continue
