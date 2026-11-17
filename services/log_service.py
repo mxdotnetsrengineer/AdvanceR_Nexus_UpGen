@@ -13,7 +13,7 @@ class LogService:
 
     # Public Methods
     def raw(self, message: str = "") -> None:
-        print(message)
+        self._record(message, "info")
 
     def info(self, message: str = "", show_icon: bool = True) -> None:
         if not message:

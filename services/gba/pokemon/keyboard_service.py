@@ -17,7 +17,7 @@ class GBAKeyboardService:
     # Public Methods
     @when_enabled("ADD_SPANISH_CHARS")
     @skip_when_disabled("ONLY_DATABASE")
-    def set_spanish_chars(
+    async def set_spanish_chars(
         self,
         game_file: bytearray,
         game: AvailableGames,
@@ -33,15 +33,15 @@ class GBAKeyboardService:
             case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED | AvailableGames.EMERALD:
                 self._spanish_replace_pokemon_gba()
 
-        self._write_keyboard_to_game_file(
+        await self._write_keyboard_to_game_file(
             game_file, game, self.keyboards.default, self.keyboards.logic.default, game_keyboards.logic.offsets[0], keyboard_separators, 
             keyboards_ocurrences[0]
         )
-        self._write_keyboard_to_game_file(
+        await self._write_keyboard_to_game_file(
             game_file, game, self.keyboards.lower, self.keyboards.logic.lower, game_keyboards.logic.offsets[1], keyboard_separators, 
             keyboards_ocurrences[1]
         )
-        self._write_keyboard_to_game_file(
+        await self._write_keyboard_to_game_file(
             game_file, game, self.keyboards.others, self.keyboards.logic.others, game_keyboards.logic.offsets[2], keyboard_separators,
             keyboards_ocurrences[2]
         )
@@ -122,7 +122,7 @@ class GBAKeyboardService:
         self._apply_main_keyboards_patch(lower_patch)
         self._apply_others_keyboard_patch(others_patch)
 
-    def _write_keyboard_to_game_file(
+    async def _write_keyboard_to_game_file(
         self,
         game_file: bytearray,
         game: AvailableGames,

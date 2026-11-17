@@ -8,16 +8,16 @@ All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
 - **Pokémon Emerald & Emerald Kaizo Support**: Added `EmeraldGame` (`games/gba/pokemon/emerald_game.py`) and new config files (`config/gba/pokemon/emerald_config.json`, `config/gba/pokemon/emerald_kaizo_config.json`) with Hoenn map bank tables, 8-byte map name parsing, item limits, and Spanish keyboard offsets.
 - **Abstract Factory & Template Method Architecture**: Created `BaseGame` (`games/base_game.py`), `GamesCore` (`games/core/games_core.py`), `GBAPokemonCoreFactory` (`games/core/gba_pokemon_core.py`), `GamesProvider` (`games/core/games_provider.py`), and the base class `GBAPokemonGame` (`games/gba/pokemon/gba_pokemon_game.py`) to avoid duplicated code across Gen III titles and make it easier to add new consoles later.
 - **Feature Flags & Custom Decorators**: Added `config/gba/pokemon/feature_flags.json` and `decorators/app_decorators.py` with `@when_enabled`, `@skip_when_disabled`, `@when_any_enabled` (OR logic), and `@keys_from_str` to toggle execution steps (`ALLOCATE_BANKS`, `ALLOCATE_MAPS`, `MAPS_EVENTS`, `ONLY_DATABASE`, `ADD_SPANISH_CHARS`) cleanly.
-- **Bank Table Scanner**: Added `get_core_banks_position` and `inspect_core_banks` to `BankService` (`services/gba/pokemon/bank_service.py`) to locate and verify root map bank pointers across different GBA ROM versions.
+- **Bank Table Scanner**: Added `get_core_banks_position` and `inspect_core_banks` to `BankService` (`services/gba/pokemon/bank_service.py`) to locate and verify root map bank pointers across different GBA games versions.
 
 ### Changed
 - **Shared GBA Pokémon Enums & Helpers**: Renamed and generalized `fire_red_enums.py` and `fire_red_helper.py` to `gba_pokemon_enums.py` (`GBAPokemonKeyIndex`, `GBAPokemonLogicKeyIndex`, `GBAPokemonOthersKeyIndex`, `GBAPokemonOthersLogicKeyIndex`) and `gba_pokemon_helper.py` so all Gen III Pokémon games share the same keyboard layouts and logic tables.
 - **Dynamic Map & Keyboard Handling**: Updated `BankService` to calculate map counts per bank using the next bank's header offset and configurable map name sizes (`MAP_NAME_ENTRY_SIZE`, `MAP_NAME_TEXT_OFFSET`), and updated `GBAKeyboardService` to handle multiple keyboard occurrences (`keyboards_ocurrences`).
-- **Config & Entry Point Cleanup**: Switched all services to use `ConfigService.get()`, moved ROM loading into `GBAPokemonCoreFactory.create_memory_service()`, updated `main.py` to load games through `GamesProvider`, and moved the old `CurrentGameFactory` to `deprecated/factory_example.py`.
+- **Config & Entry Point Cleanup**: Switched all services to use `ConfigService.get()`, moved games loading into `GBAPokemonCoreFactory.create_memory_service()`, updated `main.py` to load games through `GamesProvider`, and moved the old `CurrentGameFactory` to `deprecated/factory_example.py`.
 
 ### Fixed
 - **Enum Tuple Bug**: Removed trailing commas in `AvailableGames` (`enums/gba/games_enum.py`) that turned integer values into tuples when running `main.py`.
-- **ROM Size & Map Dimension Checks**: Replaced hardcoded `0x1D00000` memory limits with `len(game_file)` and raised the max map size check in `BankService` so large maps don't get skipped early.
+- **Games File Size & Map Dimension Checks**: Replaced hardcoded `0x1D00000` memory limits with `len(game_file)` and raised the max map size check in `BankService` so large maps don't get skipped early.
 
 
 ## [v1.0.0] - 2026-11-13

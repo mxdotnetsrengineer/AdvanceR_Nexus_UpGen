@@ -3,6 +3,10 @@ import os
 
 current_config = {}
 
+def _log_msg(message: str, should_log:bool):
+        if should_log:
+            print(message)
+
 def init_global_config(game_key):
     global current_config
 
@@ -25,6 +29,20 @@ def init_global_config(game_key):
             raw_data.update(game_data)
     else:
         missing_game = True
+
+    options_path = "config/options/options_config.json"
+    if os.path.exists(options_path):
+        with open(options_path, "r", encoding="utf-8") as f:
+            raw_data.update(json.load(f))
+
+    #game_options
+    difficulty = raw_data.get("GAME_DIFFICULTY") 
+    if difficulty:
+        difficulty_path = f"config/options/gba/pokemon/{game_key}/difficulty/{difficulty}.json"
+        if os.path.exists(difficulty_path):
+            with open(difficulty_path, "r", encoding="utf-8") as f:
+                difficulty_data = json.load(f)
+                raw_data.update({"CURRENT_DIFFICULTY" : difficulty_data})
     
     # --- FEATURE FLAGS ---
     if raw_data.get("USE_FEATURE_FLAGS") is True:
@@ -49,22 +67,24 @@ def init_global_config(game_key):
     game_name = current_config.get('GAME_NAME', game_key)
 
     current_config["available_language"] = True;
+    should_log = current_config.get("LOG_TYPE", "NONE").upper() != "NONE"
+
     match current_config.get('CURRENT_LANGUAGE'):
         case "ES_MX":
             if missing_global:
-                print("⚠️ Advertencia: No se encontró el archivo compartido global_config.json.")
+                _log_msg("⚠️ Advertencia: No se encontró el archivo compartido global_config.json.", should_log)
             if missing_game:
                 raise FileNotFoundError(f"❌ No se encontró la configuración del juego en: {game_path}")
-            print(f"ℹ️ Configuración global inicializada para: {game_name}")
+            _log_msg(f"ℹ️ Configuración global inicializada para: {game_name}", should_log)
 
         case "EN_US" | _ as lang:
             if missing_global:
-                print("⚠️ Warning: Shared global_config.json file not found.")
+                _log_msg("⚠️ Warning: Shared global_config.json file not found.", should_log)
             if missing_game:
                 raise FileNotFoundError(f"❌ Game configuration not found at: {game_path}")
 
             if lang == "EN_US":
-                print(f"ℹ️ Global configuration initialized for: {game_name}")
+                _log_msg(f"ℹ️ Global configuration initialized for: {game_name}", should_log)
             else:
                 current_config["available_language"] = False
-                print("⚠️ Language not supported")
+                _log_msg("⚠️ Language not supported", should_log)

@@ -1,4 +1,5 @@
 import copy
+import asyncio
 from enums.gba.games_enum import AvailableGames
 from helpers.gba.pokemon.gba_pokemon_helper import (GBA_POKEMON_NAMING_UPPER_KEYBOARD, GBA_POKEMON_NAMING_UPPER_LOGIC, 
     GBA_POKEMON_NAMING_LOWER_KEYBOARD, GBA_POKEMON_NAMING_LOWER_LOGIC, GBA_POKEMON_NAMING_OTHERS_KEYBOARD,GBA_POKEMON_NAMING_OTHERS_LOGIC)
@@ -11,6 +12,7 @@ from services.translations_service import TranslationsService
 from services.gba.memory_service import GBAMemoryService
 from services.gba.pokemon.bank_service import BankService
 from services.gba.pokemon.keyboard_service import GBAKeyboardService
+from services.gba.pokemon.stats_service import StatsService
 from games.gba.gba_game import GBAGame
 class GBAPokemonGame(GBAGame):
     def __init__(
@@ -22,6 +24,7 @@ class GBAPokemonGame(GBAGame):
         config_service: ConfigService,
         bank_service: BankService,
         keyboard_service: GBAKeyboardService,
+        stats_service: StatsService,
         translations_service: TranslationsService,
     ):
         super().__init__(
@@ -34,9 +37,10 @@ class GBAPokemonGame(GBAGame):
         )
         self.bank_service = bank_service
         self.keyboard_service = keyboard_service
+        self.stats_service = stats_service
 
     # Public Methods
-    def process_game(self) -> None:
+    async def process_game(self) -> None:
         self.log_service.info(
             self.translations_service.translate(
                 "messages.games.starting_modification",
@@ -44,8 +48,14 @@ class GBAPokemonGame(GBAGame):
             )
         )
 
-        self.bank_service.allocate_banks(self.memory_service.game_file)
-        self.__configure_spanish_keyboard()
+        await asyncio.gather(
+            self.bank_service.allocate_banks(self.memory_service.game_file),
+            self.stats_service.get_all_species_data(self.memory_service.game_file)
+        )   
+
+        self.bank_service.randomize_banks_wild_encounters(self.memory_service.game_file, self.stats_service.stats)
+
+        await self.__configure_spanish_keyboard()
         self._apply_game_specific_changes()
 
         self.file_service.save_new_game_file(
@@ -60,7 +70,7 @@ class GBAPokemonGame(GBAGame):
     # End Protected Methods
 
     # Private Methods
-    def __configure_spanish_keyboard(self) -> None:
+    async def __configure_spanish_keyboard(self) -> None:
         keyboard_layout = GameUIKeyboard(
             default=copy.deepcopy(GBA_POKEMON_NAMING_UPPER_KEYBOARD),
             lower=copy.deepcopy(GBA_POKEMON_NAMING_LOWER_KEYBOARD),
@@ -76,7 +86,7 @@ class GBAPokemonGame(GBAGame):
                 ],
             ),
         )
-        self.keyboard_service.set_spanish_chars(
+        await self.keyboard_service.set_spanish_chars(
             self.memory_service.game_file,
             self.game,
             keyboard_layout,
