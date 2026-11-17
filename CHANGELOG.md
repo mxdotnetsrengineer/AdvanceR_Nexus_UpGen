@@ -2,6 +2,20 @@
 
 All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
 
+## [v1.2.0] - 2026-11-16
+
+### Added
+- **Pokémon Base Stats & Evolution Line Parser**: Added `StatsService` (`services/gba/pokemon/stats_service.py`) and the `CompiledBaseStats` dataclass model (`models/gba/pokemon/compiled_base_stats.py`) to extract species base stats, BST, names, types, abilities, catch rates, and recursively calculate evolution stages and Mega Evolution flags (`MEGA_EVO_METHODS`).
+- **Difficulty-Based Wild Pokémon Randomizer**: Implemented `randomize_banks_wild_encounters` in `BankService` (`services/gba/pokemon/bank_service.py`) alongside `select_wild_species` and `randomize_wild_encounters` in `EventService` (`services/gba/pokemon/event_service.py`) to replace wild grass encounters using difficulty-scaled BST/evolution pools and dynamic level adjustments (`ADD` / `SUBS`).
+- **Difficulty & Game Options Configuration**: Updated `settings.py` to load options config and game-specific difficulty profiles and added `DIFFICULTIES` (`easy`, `normal`, `hard`, `inferno`) to `helpers/gba/pokemon/gba_pokemon_helper.py`.
+- **Expanded Game & Global Configuration Schemas**: Added pokemon stats, name table, wild encounter, and evolution pointer offsets to `emerald_config.json`, `fire_red_config.json`, and `radical_red_config.json`, plus new flags (`BASE_STATS`, `RANDOMIZE_WILD_POKEMON`, `INCLUDE_MEGA_EVOLUTIONS`) in `feature_flags.json` and `global_config.json`.
+- **Low-Level Binary Memory Helpers**: Extended `GBAMemoryService` (`services/gba/memory_service.py`) with more pointer,offsets utilities.
+
+### Changed
+- **Asynchronous Execution Pipeline**: Converted `process_game`, `allocate_banks`, and `set_spanish_chars` to `async` methods using `asyncio.gather` in `GBAPokemonGame` (`games/gba/pokemon/gba_pokemon_game.py`) and `asyncio.run` in `main.py` to run map bank allocation and Pokémon species data parsing concurrently.
+- **Service Factory & Memory Refactor**: Updated `GBAPokemonCoreFactory` (`games/core/gba_pokemon_core.py`) to inject `StatsService`, refactored `BankService`, `EventService`, and `ItemService` to use the new `GBAMemoryService` helpers, and added `width` and `height` fields to `CompiledMap`.
+- **Log Output Gating**: Updated `LogService.raw()` (`services/log_service.py`) and `settings.py` initialization messages to respect the configured `LOG_TYPE` verbosity setting instead of printing unconditionally.
+
 ## [v1.1.0] - 2026-11-14
 
 ### Added

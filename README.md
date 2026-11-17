@@ -33,6 +33,7 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 ## ✨ Key Features
 
 * **Safe Pokéball Item Randomization (`EventService` & `ItemService`):** Scans map events, inspects script opcodes to ensure the Pokéball holds an item rather than a starter Pokémon, generates new bytecode with a valid random item, and writes it into free space, while updating Game pointers.
+* **Pokémon Base Stats & Difficulty-Based Wild Randomizer (`StatsService`, `BankService` & `EventService`):** Parses pokemon base stats, BST, types, abilities, and recursive evolution lines, then randomizes wild grass encounters using difficulty-scaled BST/evolution pools and dynamic level adjustments (`easy`, `normal`, `hard`, `inferno`).
 * **Spanish UI & Internal Keyboard Customization (`{Console}KeyboardService`):** Restructures both visual layouts/spacings and logical character tables in game files, relocating `M`/`m` and inserting `Ñ`, `ñ`, `¡`, and `¿` without overflowing binary file boundaries.
 * **Map Bank & Header Reverse Engineering (`BankService`):** Reads master binary pointer tables to reconstruct map hierarchies, map dimensions (`width x height`), decoded region names via game specific character tables (starting with Pokémon Gen III), and event counts.
 * **Internationalization (`TranslationsService`):** Loads and flattens locale-specific JSON files (`ES_MX`, `EN_US`) for instant lookups.
@@ -44,8 +45,8 @@ Currently, the engine supports the following **Game Boy Advance (Gen III)** titl
 
 | Platform | Game Title | Version / Base | Status | Supported Features |
 | :--- | :--- | :--- | :--- | :--- |
-| **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
-| **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
+| **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer |
+| **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer |
 | **GBA** | **Pokémon Emerald** | USA | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
 | **GBA** | **Pokémon Emerald Kaizo** | Emerald USA Base | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
 
@@ -142,6 +143,8 @@ Establishes logical rules, output behavior, and localization switches enforced a
 * **`CURRENT_LANGUAGE`** (`str`): Sets the active locale code for console logs and error messages (`"ES_MX"` or `"EN_US"`).
 * **`LOG_TYPE`** (`str`): Controls which message channels print to the console (`"NONE"`, `"INFO"`, `"WARNING"`, `"ERROR"`, `"ERROR_AND_WARNING"`, or `"ALL"`).
 * **`USE_FEATURE_FLAGS`** (`bool`): When `true`, loads extra feature toggles from `config/{console}/{series}/feature_flags.json` (e.g., `ALLOCATE_BANKS`, `ALLOCATE_MAPS`, `MAPS_EVENTS`) to enable or skip specific steps of the process.
+* **`RANDOMIZE_WILD_POKEMON`** (`bool`): Toggles whether wild grass Pokémon encounters are randomized based on the selected difficulty profile.
+* **`INCLUDE_MEGA_EVOLUTIONS`** (`bool`): When `true`, includes Mega Evolutions when parsing evolution lines and building species data.
 
 ### 2. Game JSON Properties Example
 Every supported game uses its own JSON profile to define memory offsets, free space limits, and binary layouts. For a complete example of how a game configuration is structured, check out the [FireRed Configuration Reference](./readme/fire_red.md) (`config/gba/pokemon/fire_red_config.json`).
@@ -150,7 +153,7 @@ Every supported game uses its own JSON profile to define memory offsets, free sp
 During initialization and execution, the system manages transient runtime state inside `{Console}MemoryService`, rather than persisting them in static JSON files:
 
 * **`game_file`** (`bytearray`): Loaded into memory by `FileService.open_game()` inside `{Console}{Series}CoreFactory.create_memory_service()`. It holds the modified game bytes in memory before saving them to the output file.
-* **`free_space`** (`int`): Starts at the offset defined in `FREE_SPACE_START`. Whenever a service writes new data into the game file (such as `EventService` writing randomized Pokéball scripts), this pointer automatically moves forward so consecutive writes never overlap or overwrite existing data.
+* **`free_space_offset`** (`int`): Starts at the offset defined in `FREE_SPACE_START`. Whenever a service writes new data into the game file (such as `EventService` writing randomized Pokéball scripts), this pointer automatically moves forward so consecutive writes never overlap or overwrite existing data.
 * **`available_language`** (`bool`): Set inside `current_config` by `init_global_config()` to flag whether the requested `CURRENT_LANGUAGE` is natively supported (`ES_MX` / `EN_US`) or fell back to English.
 
 <h3 align="center">
@@ -166,7 +169,7 @@ When refactoring this codebase from procedural helper scripts into an extensible
 ### System Layers
 1. **Entry & Configuration Layer (`main.py`, `settings.py`):** Initializes the application, merges `global_config.json`, game specific JSON layouts, and optional `feature_flags.json`, converts hex strings to integers, and delegates instantiation to `GamesProvider`.
 2. **Core Factory & Domain Layer (`games/core/`, `games/`):** Uses `GamesProvider` and `{Consoole}{Series}CoreFactory` to assemble platform service families, while `BaseGame`, `{Console}Game`, and `{Console}{Series}Game` define the game execution lifecycle for concrete titles (`FireRedGame`, `EmeraldGame`).
-3. **Service Layer (`services/`):** Encapsulates all business logic and binary operations split by technical domain (`{Console}MemoryService`, `BankService`, `EventService`, `ItemService`, `{Console}KeyboardService`) alongside cross-cutting infrastructure services (`ConfigService`, `LogService`, `TranslationsService`, `FileService`).
+3. **Service Layer (`services/`):** Encapsulates all business logic and binary operations split by technical domain (`{Console}MemoryService`, `BankService`, `EventService`, `ItemService`, `StatsService`, `{Console}KeyboardService`) alongside cross-cutting infrastructure services (`ConfigService`, `LogService`, `TranslationsService`, `FileService`).
 4. **Models & Data Layer (`models/`, `enums/`, `helpers/`):** Provides strongly typed data structures (`@dataclass`), enumerations, and hexadecimal lookup tables free of side effects.
 
 <h3 align="center">
@@ -183,7 +186,7 @@ When refactoring this codebase from procedural helper scripts into an extensible
 
 #### 2. Template Method
 * **Location:** `games/base_game.py`, `games/{console}/{series}/{console}_{series}_game.py`
-* **Purpose:** `{Console}{Series}Game` defines the shared games processing skeleton inside `process_game()` (allocating map banks, configuring Spanish keyboards, and saving the modified game file) while exposing a protected `_apply_game_specific_changes()` hook so subclasses (`FireRedGame`, `EmeraldGame`) can add title specific behavior without duplicating code.
+* **Purpose:** `{Console}{Series}Game` defines the shared asynchronous processing skeleton inside `process_game()` (concurrently allocating map banks and parsing species stats via `asyncio.gather`, randomizing wild encounters, configuring Spanish keyboards, and saving the modified game file) while exposing a protected `_apply_game_specific_changes()` hook so subclasses (`FireRedGame`, `EmeraldGame`) can add title specific behavior without duplicating code.
 
 #### 3. Constructor Dependency Injection (DI)
 * **Location:** All services in `services/` and game classes in `games/`
