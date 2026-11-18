@@ -33,7 +33,7 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 ## ✨ Key Features
 
 * **Safe Pokéball Item Randomization (`EventService` & `ItemService`):** Scans map events, inspects script opcodes to ensure the Pokéball holds an item rather than a starter Pokémon, generates new bytecode with a valid random item, and writes it into free space, while updating Game pointers.
-* **Pokémon Base Stats & Difficulty-Based Wild Randomizer (`StatsService`, `BankService` & `EventService`):** Parses pokemon base stats, BST, types, abilities, and recursive evolution lines, then randomizes wild grass encounters using difficulty-scaled BST/evolution pools and dynamic level adjustments (`easy`, `normal`, `hard`, `inferno`).
+* **Pokémon Base Stats & Difficulty-Based Wild Randomizer (`StatsService`, `BankService` & `EventService`, `WildService` & `DifficultyService`):** Parses pokemon base stats, BST, types, abilities, and recursive evolution lines, then randomizes wild grass encounters using difficulty-scaled BST/evolution pools and dynamic level adjustments (`easy`, `normal`, `hard`, `inferno`).
 * **Spanish UI & Internal Keyboard Customization (`{Console}KeyboardService`):** Restructures both visual layouts/spacings and logical character tables in game files, relocating `M`/`m` and inserting `Ñ`, `ñ`, `¡`, and `¿` without overflowing binary file boundaries.
 * **Map Bank & Header Reverse Engineering (`BankService`):** Reads master binary pointer tables to reconstruct map hierarchies, map dimensions (`width x height`), decoded region names via game specific character tables (starting with Pokémon Gen III), and event counts.
 * **Internationalization (`TranslationsService`):** Loads and flattens locale-specific JSON files (`ES_MX`, `EN_US`) for instant lookups.
@@ -43,12 +43,15 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 
 Currently, the engine supports the following **Game Boy Advance (Gen III)** titles via dedicated JSON configuration profiles:
 
-| Platform | Game Title | Version / Base | Status | Supported Features |
+| Platform | Game Title | Version / Base | Status | Supported Features | Extended Features | 
 | :--- | :--- | :--- | :--- | :--- |
-| **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer |
-| **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer |
+| **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer | BST-Scaled Wild Randomizer |
+| **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer | BST-Scaled Wild Randomizer |
 | **GBA** | **Pokémon Emerald** | USA | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
 | **GBA** | **Pokémon Emerald Kaizo** | Emerald USA Base | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
+
+> 💡 **Interested in Extended Features?**  
+> Features like the **BST-Scaled Wild Randomizer** are available for you. If you'd like to get access or learn more about the project, feel free to reach out at the email **[mexican.dotnet.senior.engineer@gmail.com](mailto:mexican.dotnet.senior.engineer@gmail.com)**.
 
 <h3 align="center">
   ⚫ ⚫ ⚫
@@ -106,7 +109,7 @@ The repository is organized by layers and platform domains so new consoles, game
 
 * **`config/`** — Stores declarative JSON configurations split between global runtime flags (`global_config.json`) and console/game specific binary layouts (`config/{console}/{series}/`), allowing new titles to be supported without modifying core logic.
 * **`enums/`** — Centralizes strongly typed enumerations for supported titles, languages, logging channels, and dynamically generated keyboard index mappings.
-* **`decorators/`** — Contains reusable Python decorators (`app_decorators.py`) to toggle features via config flags (`@when_enabled`, `@skip_when_disabled`, `@when_any_enabled`) and generate enums from strings (`@keys_from_str`).
+* **`decorators/`** — Contains reusable Python decorators (`app_decorators.py`) to toggle features via config flags (`@when_enabled`, `@skip_when_enabled`, `@when_any_enabled`) and generate enums from strings (`@keys_from_str`).
 * **`games/`** — Holds the game classes and the factories that build them:
   * **`base_game.py` (`BaseGame`):** Base abstract class that defines the main structure for any game, regardless of the console.
   * **`core/` (`GamesProvider`, `GamesCore`, `{Console}{Series}CoreFactory`):** Uses the **Abstract Factory** pattern to set up the right services, load the game file into memory, and create the selected game.
@@ -168,7 +171,7 @@ When refactoring this codebase from procedural helper scripts into an extensible
 
 ### System Layers
 1. **Entry & Configuration Layer (`main.py`, `settings.py`):** Initializes the application, merges `global_config.json`, game specific JSON layouts, and optional `feature_flags.json`, converts hex strings to integers, and delegates instantiation to `GamesProvider`.
-2. **Core Factory & Domain Layer (`games/core/`, `games/`):** Uses `GamesProvider` and `{Consoole}{Series}CoreFactory` to assemble platform service families, while `BaseGame`, `{Console}Game`, and `{Console}{Series}Game` define the game execution lifecycle for concrete titles (`FireRedGame`, `EmeraldGame`).
+2. **Core Factory & Domain Layer (`games/core/`, `games/`):** Uses `GamesProvider` and `{Console}{Series}CoreFactory` to assemble platform service families, while `BaseGame`, `{Console}Game`, and `{Console}{Series}Game` define the game execution lifecycle for concrete titles (`FireRedGame`, `EmeraldGame`).
 3. **Service Layer (`services/`):** Encapsulates all business logic and binary operations split by technical domain (`{Console}MemoryService`, `BankService`, `EventService`, `ItemService`, `StatsService`, `{Console}KeyboardService`) alongside cross-cutting infrastructure services (`ConfigService`, `LogService`, `TranslationsService`, `FileService`).
 4. **Models & Data Layer (`models/`, `enums/`, `helpers/`):** Provides strongly typed data structures (`@dataclass`), enumerations, and hexadecimal lookup tables free of side effects.
 
@@ -202,7 +205,7 @@ When refactoring this codebase from procedural helper scripts into an extensible
 
 #### 6. Custom Decorators & Metaprogramming (`@when_enabled`, `@keys_from_str`)
 * **Location:** `decorators/app_decorators.py`, `enums/{console}/{series}/{console}_{series}_enums.py`
-* **Purpose:** Uses custom function decorators (`@when_enabled`, `@skip_when_disabled`, `@when_any_enabled`) to control when service methods run using config flags, keeping the main code clean without extra if checks. Additionally, `@keys_from_str` parses class docstrings to dynamically generate sequential `IntEnum` definitions (`{Console}{Series}KeyIndex`, `{Console}{Series}LogicKeyIndex`), preventing manual indexing errors.
+* **Purpose:** Uses custom function decorators (`@when_enabled`, `@skip_when_enabled`, `@when_any_enabled`) to control when service methods run using config flags, keeping the main code clean without extra if checks. Additionally, `@keys_from_str` parses class docstrings to dynamically generate sequential `IntEnum` definitions (`{Console}{Series}KeyIndex`, `{Console}{Series}LogicKeyIndex`), preventing manual indexing errors.
 
 #### 7. Factory Method (Deprecated)
 * **Location:** `deprecated/factory_example.py`
