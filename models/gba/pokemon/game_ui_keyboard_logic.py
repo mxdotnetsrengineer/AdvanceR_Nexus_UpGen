@@ -5,4 +5,4 @@ class GameUIKeyboardLogic:
     default:bytearray
     lower:bytearray
     others:bytearray
-    offsets:[int,int,int]
+    offsets:tuple[int,int,int]

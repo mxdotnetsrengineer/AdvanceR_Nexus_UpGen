@@ -1,7 +1,9 @@
 from models.gba.pokemon.compiled_bank import CompiledBank
 from models.gba.pokemon.compiled_map import CompiledMap
-from decorators.app_decorators import when_enabled,skip_when_disabled
-from helpers.gba.games_helper import GBA_POKEMON_III_CHAR_TABLE
+from models.gba.pokemon.compiled_base_stats import CompiledBaseStats
+from decorators.app_decorators import when_enabled, skip_when_enabled, when_any_enabled
+from helpers.gba.games_helper import GBA_PTR_BYTE_SIZE, HEX_NUM_BASE
+from helpers.gba.pokemon.gba_pokemon_helper import MAX_BANK_SCAN_BYTES
 from services.config_service import ConfigService
 from services.log_service import LogService
 from services.translations_service import TranslationsService
@@ -11,198 +13,308 @@ from services.gba.pokemon.event_service import EventService
 
 class BankService:
     def __init__(
-        self,
+        _self,
         config_service: ConfigService,
         memory_service: GBAMemoryService,
         log_service: LogService,
         event_service: EventService,
         translations_service: TranslationsService,
     ):
-        self.config = config_service
-        self.memory = memory_service
-        self.log = log_service
-        self.events = event_service
-        self.translator = translations_service
+        _self.config = config_service
+        _self.memory = memory_service
+        _self.log = log_service
+        _self.events = event_service
+        _self.translator = translations_service
 
-        self.banks: list[CompiledBank] = []
-        self.current_bank: CompiledBank | None = None
+        _self.banks: list[CompiledBank] = []
+        _self.current_bank: CompiledBank | None = None
 
     # Public Methods
-    def get_core_banks_position(self, game_file: bytearray) -> None:
-        # Rango donde vive la rutina de mapas en todas las versiones de Emerald (USA/EUR/ESP)
-        start_scan = 0x084000
-        end_scan = 0x086000
+    def get_core_banks_position(_self, game_file: bytearray) -> tuple[int | None, int | None]:
+        """Scan the standard game memory range to find the pointer to the core map bank table."""
+        start_scan_ptr = 0x055000 #Change the pointers for other games, default firered
+        end_scan_ptr = 0x056000   
+        game_size = len(game_file)
+        banks_to_find = 5
 
-        for offset in range(start_scan, end_scan, 4):
-            # 1. Leemos el posible puntero a la tabla de bancos (ej. 0x08486578)
-            bank_table_ptr = self.memory.gba_pointer_to_file_offset(game_file, offset)
-            if not bank_table_ptr:
+        for candidate_ptr in range(start_scan_ptr, end_scan_ptr, GBA_PTR_BYTE_SIZE):
+            bank_table_offset = GBAMemoryService.pointer_to_offset(
+                game_file[candidate_ptr : candidate_ptr + GBA_PTR_BYTE_SIZE]
+            )
+            
+            if bank_table_offset is None or bank_table_offset + (GBA_PTR_BYTE_SIZE * banks_to_find) > game_size:
                 continue
 
-            # 2. Validamos que los primeros 5 elementos dentro de esa tabla sean punteros válidos a listas de mapas
             valid_banks = 0
-            for bank_id in range(5):
-                bank_ptr = self.memory.gba_pointer_to_file_offset(game_file, bank_table_ptr + (bank_id * 4))
-                if bank_ptr:
-                    # 3. Validamos que el primer mapa dentro de ese banco también sea un puntero válido
-                    first_map_ptr = self.memory.gba_pointer_to_file_offset(game_file, bank_ptr)
-                    if first_map_ptr:
+            for bank_id in range(banks_to_find):
+                bank_ptr = bank_table_offset + (bank_id * GBA_PTR_BYTE_SIZE)
+                bank_header_offset = GBAMemoryService.pointer_to_offset(
+                    game_file[bank_ptr : bank_ptr + GBA_PTR_BYTE_SIZE]
+                )
+                
+                if bank_header_offset is not None and bank_header_offset + GBA_PTR_BYTE_SIZE <= game_size:
+                    map_list_offset = GBAMemoryService.pointer_to_offset(
+                        game_file[bank_header_offset : bank_header_offset + GBA_PTR_BYTE_SIZE]
+                    )
+                    if map_list_offset is not None and map_list_offset < game_size:
                         valid_banks += 1
 
-            if valid_banks == 5:
-                self.log.info(f"✅ Puntero encontrado en: {hex(offset)} -> Apunta a tabla de bancos en: {hex(bank_table_ptr)}")
-                return offset, bank_table_ptr
+            if valid_banks == banks_to_find:
+                _self.log.info(
+                    _self.translator.translate(
+                        "messages.banks.table_pointer_found",
+                        ptr_memory=hex(candidate_ptr),
+                        offset=hex(bank_table_offset),
+                    )
+                )
+                return candidate_ptr, bank_table_offset
 
-        self.log.info("❌ No se encontró en el rango estándar (puede ser una ROM hack con rutina movida).")
+        _self.log.info(_self.translator.translate("warnings.banks.pointer_not_found"))
         return None, None
     
-    def inspect_core_banks(self,game_file: bytearray) -> None:
-        bank_table_offset = self.config.get("BANK_TABLE_OFFSET")
-        self.log.raw("=" * 80)
-        self.log.info(self.translator.translate("messages.banks.decryption_start", offset=hex(bank_table_offset)))
-        self.log.raw("=" * 80)
+    def inspect_core_banks(_self, game_file: bytearray) -> None:
+        """Inspect entries inside the core map bank table of the game file."""
+        bank_table_offset = _self.config.get("BANK_TABLE_OFFSET")
+        game_size = len(game_file)
 
-        for position in range(100):
-            entry_offset = bank_table_offset + (position * 4)
-            pointer_offset = self.memory.gba_pointer_to_file_offset(game_file, entry_offset)
+        _self.log.raw("=" * 80)
+        _self.log.info(
+            _self.translator.translate("messages.banks.decryption_start", offset=hex(bank_table_offset))
+        )
+        _self.log.raw("=" * 80)
+        
+        target_id = 0
+        for position in range(_self.config.get("BANKS_TO_PRINT")):
+            entry_offset = bank_table_offset + (position * GBA_PTR_BYTE_SIZE)
+            if entry_offset + GBA_PTR_BYTE_SIZE > game_size:
+                break
 
-            if pointer_offset is None or pointer_offset == 0:
-                self.log.info(self.translator.translate("messages.banks.empty_table_position", position=position))
+            entry_ptr = GBAMemoryService.offset_to_pointer(entry_offset)
+            target_ptr = game_file[entry_offset : entry_offset + GBA_PTR_BYTE_SIZE]
+            target_offset = GBAMemoryService.pointer_to_offset(target_ptr)
+
+            if target_offset is None or target_offset + GBA_PTR_BYTE_SIZE > game_size:
+                _self.log.info(
+                    _self.translator.translate(
+                        "warnings.banks.empty_table_position",
+                        ptr_memory=hex(entry_ptr),
+                    )
+                )
                 continue
 
-            # Verificamos si lo que hay dentro de esa posición apunta a una lista de mapas válida
-            first_bank_map_list = self.memory.gba_pointer_to_file_offset(game_file, pointer_offset)
-            is_banks_array = first_bank_map_list is not None and first_bank_map_list > 0
+            first_map_list_ptr = game_file[target_offset : target_offset + GBA_PTR_BYTE_SIZE]
+            first_map_list_offset = GBAMemoryService.pointer_to_offset(first_map_list_ptr)
+            is_banks_array = first_map_list_offset is not None and first_map_list_offset < game_size
+            if is_banks_array:
+                target_id+=1
 
-            self.log.info(
-                f"\n {self.translator.translate('messages.banks.table_pointer_found', position=position, offset=hex(pointer_offset))}"
-                f" -> ¿Es tabla de bancos?: {'✅ SÍ' if is_banks_array else '❌ No'}"
-            )
-            self.log.raw("-" * 80)
+            _self.log.info(_self.translator.translate("messages.banks.bank_entry", bank_id=f"{target_id:2d}", 
+                        offset=hex(target_offset)), False)
+            _self.log.raw("-" * 80)
 
-    def allocate_banks(self, game_file: bytearray) -> None:
-        banks_id = self.config.get("BANK_TABLE_BANKS_POSITION")
-        bank_table_offset = self.config.get("BANK_TABLE_OFFSET")
-        banks_to_print = self.config.get("BANKS_TO_PRINT")
+    async def allocate_banks(_self, game_file: bytearray) -> None:
+        """Read and allocate the map banks directly from the bank table file offset."""
+        bank_table_offset = _self.config.get("BANK_TABLE_OFFSET")
+        banks_to_print = _self.config.get("BANKS_TO_PRINT")
 
-        self.log.raw("=" * 80)
-        self.log.info(self.translator.translate("messages.banks.decryption_start", offset=hex(bank_table_offset)))
-        self.log.raw("=" * 80)
-
-        bank_entry_offset = bank_table_offset + (banks_id * 4)
-        bank_list_offset = self.memory.gba_pointer_to_file_offset(game_file, bank_entry_offset)
-
-        if bank_list_offset is None or bank_list_offset == 0:
-            self.log.info(self.translator.translate("messages.banks.empty_table_position", position=banks_id))
+        if bank_table_offset is None or bank_table_offset >= len(game_file):
             return
 
-        self.log.info(f"\n {self.translator.translate("messages.banks.table_pointer_found",position=banks_id,offset=hex(bank_list_offset))}")
-        self.log.raw("-" * 80)
+        bank_table_ptr = GBAMemoryService.offset_to_pointer(bank_table_offset)
+
+        _self.log.raw("=" * 80)
+        _self.log.info(
+            _self.translator.translate("messages.banks.decryption_start", offset=hex(bank_table_offset))
+        )
+        _self.log.info(
+            f"\n {_self.translator.translate('messages.banks.table_pointer_found', ptr_memory=hex(bank_table_ptr), 
+                offset=hex(bank_table_offset))}"
+        )
+        _self.log.raw("-" * 80)
 
         for bank_id in range(banks_to_print):
-            self._allocate_bank(
+            _self.__allocate_bank(
                 game_file=game_file,
-                bank_list_offset=bank_list_offset,
+                bank_table_offset=bank_table_offset,
                 bank_id=bank_id,
-            )
+        )
+
+    @skip_when_enabled("ONLY_DATABASE")
+    @when_any_enabled("WILD_EVENTS" , "RANDOMIZE_WILD_POKEMON")
+    def randomize_banks_wild_encounters(
+        _self,
+        game_file: bytearray,
+        species_list: list[CompiledBaseStats],
+    ) -> None:
+        """Iterate through all compiled banks and maps to randomize wild Pokémon encounters."""
+        
+        _self.current_bank = None
+        game_size = len(game_file)
+
+        raw_wild_offsets: list[int] = _self.config.get("WILD_POKEMON_OFFSET") or []
+        wild_table_offsets = [
+            val for off in raw_wild_offsets
+            if 0 <= (val := int(off, HEX_NUM_BASE) if isinstance(off, str) else off) < game_size
+        ]
+
+        if not _self.banks or not species_list or not wild_table_offsets:
+            return
+        
+        wild_grass_slot_count = _self.config.get("WILD_GRASS_SLOT_COUNT")
+        species_by_id = {pokemon.id: pokemon for pokemon in species_list}
+        wild_candidates = [sp for sp in species_list if not sp.is_mega]
+        bank_map_pairs = [(bank, compiled_map) for bank in _self.banks for compiled_map in bank.maps]
+        
+        for wild_table_offset in wild_table_offsets:
+            for bank, compiled_map in bank_map_pairs:
+                selected_species = _self.events.select_wild_species(
+                    bank=bank,
+                    compiled_map=compiled_map,
+                    wild_grass_slot_count=wild_grass_slot_count,
+                    wild_table_offset=wild_table_offset,
+                    wild_candidates=wild_candidates,
+                    game_file=game_file,
+                )
+                
+                if not selected_species:
+                    continue
+                _self.events.randomize_wild_encounters(
+                    bank=bank,
+                    compiled_map=compiled_map,
+                    wild_grass_slot_count=wild_grass_slot_count,
+                    wild_table_offset=wild_table_offset,
+                    selected_species=selected_species,
+                    species_by_id=species_by_id,
+                    game_file=game_file,
+                )
+
     # End Public Methods
 
     # Private Methods
     @when_enabled("ALLOCATE_BANKS", default=True)
-    def _allocate_bank(self, game_file: bytearray, bank_list_offset: int, bank_id: int) -> None:
-        bank_entry_offset = bank_list_offset + (bank_id * 4)
-        bank_header_offset = self.memory.gba_pointer_to_file_offset(game_file, bank_entry_offset)
+    def __allocate_bank(_self, game_file: bytearray, bank_table_offset: int, bank_id: int) -> None:
+        """Resolve a single bank's map list offset and calculate its boundary using the next bank."""
+        game_size = len(game_file)
+        bank_entry_offset = bank_table_offset + (bank_id * GBA_PTR_BYTE_SIZE)
 
-        if bank_header_offset is None or bank_header_offset == 0 or bank_header_offset > len(game_file):
+        if bank_entry_offset + 4 > game_size:
             return
 
-        next_bank_entry_offset = bank_list_offset + ((bank_id + 1) * 4)
-        next_bank_header_offset = self.memory.gba_pointer_to_file_offset(game_file, next_bank_entry_offset)
+        bank_header_ptr = game_file[bank_entry_offset : bank_entry_offset + GBA_PTR_BYTE_SIZE]
+        bank_header_offset = GBAMemoryService.pointer_to_offset(bank_header_ptr)
 
-        if next_bank_header_offset is None or next_bank_header_offset == 0 or next_bank_header_offset > len(game_file):
-            next_bank_header_offset = bank_header_offset + 0x2000
+        if bank_header_offset is None or bank_header_offset >= game_size:
+            return
 
-        self.log.info(self.translator.translate("messages.banks.bank_entry",bank_id=f"{bank_id:2d}",offset=hex(bank_header_offset)),False)
+        next_bank_entry_offset = bank_table_offset + ((bank_id + 1) * GBA_PTR_BYTE_SIZE)
+        next_bank_header_offset = None
 
-        self.current_bank = CompiledBank(
-            bank_id=bank_id,
-            header_offset=bank_header_offset,
-            maps=[],
+        if next_bank_entry_offset + 4 <= game_size:
+            next_bank_header_ptr = game_file[next_bank_entry_offset : next_bank_entry_offset + GBA_PTR_BYTE_SIZE]
+            next_bank_header_offset = GBAMemoryService.pointer_to_offset(next_bank_header_ptr)
+
+        # For the last bank (42 in FireRed), its map list ends right where the bank table begins
+        if next_bank_header_offset is None or next_bank_header_offset <= bank_header_offset or next_bank_header_offset > game_size:
+            next_bank_header_offset = bank_table_offset if bank_table_offset > bank_header_offset else bank_header_offset + MAX_BANK_SCAN_BYTES
+
+        _self.log.info(
+            _self.translator.translate(
+                "messages.banks.bank_entry",
+                bank_id=f"{bank_id:2d}",
+                offset=hex(bank_header_offset),
+            ),
+            False,
         )
-        self._allocate_maps(game_file, next_bank_header_offset)
-            
-    
-    @when_enabled("ALLOCATE_MAPS", default=True)
-    def _allocate_maps(self, game_file: bytearray, next_bank_header_offset: int) -> None:
-        max_configured = self.config.get("MAPS_PER_BANK_TO_PRINT") or 256
-        calculated_maps = (next_bank_header_offset - self.current_bank.header_offset) // 4
 
-        # Solo usamos calculated_maps si el siguiente banco está adelante y dentro de un rango lógico
-        if 0 < calculated_maps <= max_configured:
-            total_maps = calculated_maps
-        else:
-            total_maps = max_configured
+        _self.current_bank = CompiledBank(bank_id=bank_id, header_offset=bank_header_offset, maps=[])
+        _self.__allocate_maps(game_file, next_bank_header_offset)
+
+    @when_enabled("ALLOCATE_MAPS", default=True)
+    def __allocate_maps(_self, game_file: bytearray, next_bank_header_offset: int) -> None:
+        """Iterate through the current bank's map list, parse map headers, and collect events."""
+        game_size = len(game_file)
+        max_configured = _self.config.get("MAPS_PER_BANK_TO_PRINT")
+        calculated_maps = (next_bank_header_offset - _self.current_bank.header_offset) // GBA_PTR_BYTE_SIZE
+        total_maps = calculated_maps if 0 < calculated_maps <= max_configured else max_configured
 
         for map_id in range(total_maps):
-            map_entry_offset = self.current_bank.header_offset + (map_id * 4)
-            map_header_offset = self.memory.gba_pointer_to_file_offset(game_file, map_entry_offset)
-
-            if map_header_offset is None or map_header_offset == 0 or map_header_offset >= len(game_file):
+            map_entry_offset = _self.current_bank.header_offset + (map_id * GBA_PTR_BYTE_SIZE)
+            if map_entry_offset + 4 > game_size:
                 break
 
-            map_name = self._get_map_name(game_file, map_header_offset)
-            if not map_name or not map_name.strip():
-                map_name = f"({self.current_bank.bank_id}.{map_id})"
+            map_header_ptr = game_file[map_entry_offset : map_entry_offset + GBA_PTR_BYTE_SIZE]
+            map_header_offset = GBAMemoryService.pointer_to_offset(map_header_ptr)
 
-            layout_pointer = self.memory.gba_pointer_to_file_offset(game_file, map_header_offset)
+            if map_header_offset is None or map_header_offset + GBA_PTR_BYTE_SIZE > game_size:
+                break
+
+            map_name = _self.__get_map_name(game_file, map_header_offset)
+            if not map_name.strip() or map_name == "UNKNOWN":
+                map_name = f"({_self.current_bank.bank_id}.{map_id})"
+
+            layout_ptr = game_file[map_header_offset : map_header_offset + GBA_PTR_BYTE_SIZE]
+            layout_offset = GBAMemoryService.pointer_to_offset(layout_ptr)
+
             width, height = 0, 0
-            if layout_pointer and layout_pointer < len(game_file):
-                width = int.from_bytes(game_file[layout_pointer : layout_pointer + 4], byteorder="little")
-                height = int.from_bytes(game_file[layout_pointer + 4 : layout_pointer + 8], byteorder="little")
+            layout_lenght = 2
+            if layout_offset is not None:
+                data = GBAMemoryService.read_u32_array(game_file, layout_offset, layout_lenght)
+                if len(data) == layout_lenght:
+                    width, height = data[0], data[1]
 
             if width > 2000 or height > 2000 or width == 0 or height == 0:
                 break
 
-            self.log.info(
-                self.translator.translate("messages.banks.map_entry",map_id=f"{map_id:2d}",name=f"{map_name:<15s}",header=hex(map_header_offset),
-                width=f"{width:3d}", height=f"{height:3d}"), False
+            _self.log.info(
+                _self.translator.translate(
+                    "messages.banks.map_entry",
+                    map_id=f"{map_id:2d}",
+                    name=f"{map_name:<15s}",
+                    header=hex(map_header_offset),
+                    width=f"{width:3d}",
+                    height=f"{height:3d}",
+                ),
+                False,
             )
+
             current_map = CompiledMap(
                 map_id=map_id,
                 header_offset=map_header_offset,
                 name=map_name,
                 events_count=0,
+                width=width,
+                height=height,
             )
+            _self.events.find_map_events(game_file, current_map)
+            _self.current_bank.maps.append(current_map)
 
-            self.events.find_map_events(game_file, current_map)
-            self.current_bank.maps.append(current_map)
-        self.banks.append(self.current_bank)
+        _self.banks.append(_self.current_bank)
 
-    def _get_map_name(self, game_file: bytearray, map_header_offset: int) -> str:
-        map_names_table_offset = self.config.get("MAP_NAMES_TABLE_OFFSET")
-        name_id = game_file[map_header_offset + self.config.get("REGION_MAP_BYTE")]
+    def __get_map_name(_self, game_file: bytearray, map_header_offset: int) -> str:
+        """Resolve the map's region name string from the map names table."""
+        game_size = len(game_file)
+        region_byte_offset = map_header_offset + _self.config.get("REGION_MAP_BYTE")
 
-        if name_id < self.config.get("GAME_START"):
+        if region_byte_offset >= game_size:
             return "UNKNOWN"
 
-        adjusted_index = name_id - self.config.get("GAME_START")
-        
-        #Default Fire Red Values 4,0
-        entry_size = self.config.get("MAP_NAME_ENTRY_SIZE") or 4
-        text_offset = self.config.get("MAP_NAME_TEXT_OFFSET") or 0
-        pointer_entry = map_names_table_offset + (adjusted_index * entry_size) + text_offset
-        string_pointer = self.memory.gba_pointer_to_file_offset(game_file, pointer_entry)
+        name_id = game_file[region_byte_offset]
+        game_start = _self.config.get("GAME_START")
 
-        if not string_pointer or string_pointer >= len(game_file):
+        if name_id < game_start:
             return "UNKNOWN"
 
-        map_name = ""
-        offset = string_pointer
-        while offset < len(game_file):
-            char_byte = game_file[offset]
-            if char_byte == 0xFF:
-                break
-            map_name += GBA_POKEMON_III_CHAR_TABLE.get(char_byte, "?")
-            offset += 1
-        return map_name
+        adjusted_index = name_id - game_start
+        entry_size = _self.config.get("MAP_NAME_ENTRY_SIZE")
+        text_field_offset = _self.config.get("MAP_NAME_TEXT_OFFSET")
+        names_table_offset = _self.config.get("MAP_NAMES_TABLE_OFFSET")
+
+        name_entry_offset = names_table_offset + (adjusted_index * entry_size) + text_field_offset
+        if name_entry_offset + GBA_PTR_BYTE_SIZE > game_size:
+            return "UNKNOWN"
+
+        name_string_ptr = game_file[name_entry_offset : name_entry_offset + GBA_PTR_BYTE_SIZE]
+        name_string_offset = GBAMemoryService.pointer_to_offset(name_string_ptr)
+
+        return GBAMemoryService.read_string(game_file, name_string_offset)
     # End Private Methods
