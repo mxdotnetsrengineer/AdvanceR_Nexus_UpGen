@@ -1,7 +1,7 @@
 {
-    "GAME_NAME": "Pokemon Emerald",
-    "ORIGINAL_GAME": "Pokemon - Emerald Version (USA, Europe).gba",
-    "MODIFIED_GAME": "Pokemon - Emerald Version_random.gba",
+    "GAME_NAME": "Pokemon Emerald Kaizo",
+    "ORIGINAL_GAME": "PK EMR Kaizo v2.0.gba",
+    "MODIFIED_GAME": "PK EMR Kaizo v2.0_random.gba",
     "GAME_START" : "0x00",
     "MAX_ROM_SIZE" : "0x1000000",
     "FREE_SPACE_START": "0xF00000",
@@ -12,7 +12,7 @@
     "LOWER_KEYBOARD_CHARS_OFFSET": "0x58BE40",
     "OTHERS_KEYBOARD_CHARS_OFFSET": "0x58BE80",
 
-    "BANK_TABLE_OFFSET": "0x84aa4",
+    "BANK_TABLE_OFFSET": "0x486578",
     "BANK_TABLE_BANKS_POSITION" : 0,
     "BANKS_TO_PRINT": 34, 
     
@@ -25,5 +25,11 @@
     "MAX_ITEM_ID": 376,
     "POKEBALL_SPRITE_ID": 59,
     "ITEMS_POINTER_OFFSET": "0x1C8",
-    "ITEM_STRUCT_SIZE": 44
+    "ITEM_STRUCT_SIZE": 44,
+
+    "POKEMON_STATS_OFFSET": "0x0001BC",
+    "POKEMON_STRUCT_SIZE": 28,
+    "POKEMON_NAMES_OFFSET": "0x000144",
+    "POKEMON_NAME_LENGTH": 11,
+    "MAX_POKEMON_SPECIES": 412
 }

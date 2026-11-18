@@ -47,17 +47,15 @@ class GBAPokemonGame(GBAGame):
                 game_name=self._get("GAME_NAME"),
             )
         )
-
+        
         await asyncio.gather(
             self.bank_service.allocate_banks(self.memory_service.game_file),
             self.stats_service.get_all_species_data(self.memory_service.game_file)
         )   
 
         self.bank_service.randomize_banks_wild_encounters(self.memory_service.game_file, self.stats_service.stats)
-
         await self.__configure_spanish_keyboard()
-        self._apply_game_specific_changes()
-
+        # self._apply_game_specific_changes()
         self.file_service.save_new_game_file(
             self.memory_service.game_file,
             self._get("MODIFIED_GAME"),

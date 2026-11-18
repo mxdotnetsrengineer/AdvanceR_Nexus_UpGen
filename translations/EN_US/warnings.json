@@ -1,5 +1,9 @@
 {
     "warnings": {
-        "invalid_items_pointer": "Items pointer offset is invalid or out of game file bounds."
+        "invalid_items_pointer": "Items pointer offset is invalid or out of game file bounds.",
+        "banks": {
+            "empty_table_position": "Core Table Memory {ptr_memory}: [Empty or Reserved]",
+            "pointer_not_found": "Could not find the map bank pointer in the standard range. This might be a modified game."
+        }
     }
 }

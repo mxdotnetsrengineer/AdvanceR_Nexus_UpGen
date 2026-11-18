@@ -2,6 +2,25 @@
 
 All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
 
+## [v1.2.1] - 2026-11-17
+
+### Added
+- **Dedicated Wild Encounter & Difficulty Services**: Extracted wild encounter resolution and difficulty tier generation out of `EventService` into modular services: `WildService` (`services/gba/pokemon/wild_service.py`) and `DifficultyService` (`services/gba/pokemon/difficulty_service.py`), wired through `GBAPokemonCoreFactory` (`games/core/gba_pokemon_core.py`).
+- **Spanish Keyboard Support for Emerald Kaizo**: Extended `GBAKeyboardService` (`services/gba/pokemon/keyboard_service.py`) to apply Spanish character patches (`Ñ`, `ñ`, `¡`, `¿`) to `AvailableGames.EMERALD_KAIZO` alongside FireRed, Radical Red, and Emerald.
+- **Async Support in Flag Decorators**: Updated `_flag_condition` and `when_any_enabled` in `decorators/app_decorators.py` using `inspect.iscoroutinefunction` so decorators seamlessly wrap both synchronous and `async` methods without returning `None` before `await`.
+- **Word-Aligned Free Space Scanner & Struct Unpacking**: Added `read_u16_array` (`struct.unpack_from`), `offset_to_pointer`, and 4-byte word-alignment (`align_to_word`) to `GBAMemoryService` (`services/gba/memory_service.py`).
+- **Expanded Locale Messages & Warnings**: Added localized keys (`messages.yes`, `messages.no`, `messages.banks.is_bank_table`, `warnings.banks.empty_table_position`, `warnings.banks.pointer_not_found`) across `EN_US` and `ES_MX` translation files.
+
+### Changed
+- **Direct Offset Configuration Schema**: Replaced pointer-based config keys (`BANK_TABLE_OFFSET`, `POKEMON_STATS_POINTER_OFFSET`, `POKEMON_NAMES_POINTER_OFFSET`, `WILD_POKEMON_POINTER_OFFSET`) with direct ROM offsets (`0x486578` for Emerald/Kaizo and `0x3526a8` for FireRed/Radical Red) and swapped the swapped filenames between `emerald_config.json` and `emerald_kaizo_config.json`.
+- **Static & Encapsulated Binary Operations**: Converted `GBAMemoryService` pointer/string utilities into `@staticmethod` / `@classmethod` helpers, tightened bounds checking across `BankService`, `EventService`, `ItemService`, and `StatsService`, and encapsulated internal helper methods with private `__` naming.
+- **Inverted Database Flag Decorator**: Replaced `@skip_when_disabled("ONLY_DATABASE")` with `@skip_when_enabled("ONLY_DATABASE")` across `FileService`, `BankService`, `EventService`, and `GBAKeyboardService` for clearer boolean semantics.
+- **Updated Default Runtime & Gitignore Rules**: Set default language to `ES_MX` in `config/global_config.json`, and updated `MAX_BANK_SCAN_BYTES` (`0x2000`) and `GBA_POKEMON_III_CHAR_TABLE` in `helpers/gba/pokemon/gba_pokemon_helper.py`.
+
+### Fixed
+- **Upper Keyboard Logic Byte Alignment**: Moved the `0x00` spacer byte from the start of row 4 (`T-Z`) to the end of row 3 (`M-S`) in `GBA_POKEMON_NAMING_UPPER_LOGIC` (`helpers/gba/pokemon/gba_pokemon_helper.py`) to match the exact 8-column binary layout in GBA ROMs.
+- **Redundant Game Save Call**: Removed duplicate `save_new_game_file` call in `FireRedGame._apply_game_specific_changes()` (`games/gba/pokemon/fire_red_game.py`).
+
 ## [v1.2.0] - 2026-11-16
 
 ### Added

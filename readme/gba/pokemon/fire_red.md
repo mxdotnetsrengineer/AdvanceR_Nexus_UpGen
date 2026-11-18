@@ -36,13 +36,13 @@ Below is a reference example of how these constants are structured inside the co
 * **`POKEMON_STRUCT_SIZE`** (`int`): Byte size of a single Pokémon base stats structure (`28` bytes in Gen III).
 * **`POKEMON_NAMES_OFFSET`** (`hex str`): File address containing the offset to the pokemon name strings table (`0x000144` in *FireRed* / *Radical Red*).
 * **`POKEMON_NAME_LENGTH`** (`int`): Maximum character length allocated per Pokémon pokemon name (`11` bytes).
-* **`MAX_POKEMON_pokemon`** (`int`): Total number of pokemon entries iterated when building the stats database (`412` in *FireRed*; `1376` in *Radical Red*).
+* **`MAX_POKEMON_SPECIES`** (`int`): Total number of pokemon entries iterated when building the stats database (`412` in *FireRed*; `1376` in *Radical Red*).
 * **`POKEMON_EVOLUTIONS_OFFSET`** (`list[hex str]`): List of physical file offsets pointing to evolution data tables (`["0x259754"]` in *FireRed*; `["0x17CD9B0"]` in *Radical Red*) used to recursively calculate evolution stages and detect Mega Evolutions.
 * **`EVOS_PER_MON`** (`int`): Maximum number of evolution entries stored per pokemon (`5` in *FireRed*; `16` in *Radical Red*).
 * **`EVO_ENTRY_SIZE`** (`int`): Byte size of each individual evolution entry (`8` bytes).
 
 #### Wild Pokémon Encounters
-* **`WILD_POKEMON_POINTER_OFFSET`** (`list[hex str]`): List of physical file offsets pointing to wild encounter header tables (`["0x3C9CB8"]` in *FireRed*; `["0x1166428", "0x1166AB8"]` in *Radical Red*).
+* **`WILD_POKEMON_OFFSET`** (`list[hex str]`): List of physical file offsets pointing to wild encounter header tables (`["0x3C9CB8"]` in *FireRed*; `["0x1166428", "0x1166AB8"]` in *Radical Red*).
 * **`WILD_HEADER_STRUCT_SIZE`** (`int`): Byte size of each map wild encounter header entry (`20` bytes).
 * **`WILD_GRASS_SLOT_COUNT`** (`int`): Number of encounter slots inside a wild grass table (`12` slots).
 * **`WILD_SLOT_STRUCT_SIZE`** (`int`): Byte size of an individual wild encounter slot containing min/max levels and pokemon ID (`4` bytes).

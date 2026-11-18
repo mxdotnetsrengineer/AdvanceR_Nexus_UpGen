@@ -21,6 +21,8 @@ class GBAPokemonCoreFactory(GamesCore):
         from services.gba.pokemon.bank_service import BankService
         from services.gba.pokemon.event_service import EventService
         from services.gba.pokemon.item_service import ItemService
+        from services.gba.pokemon.wild_service import WildService
+        from services.gba.pokemon.difficulty_service import DifficultyService
 
         common_services = {
             "config_service": self.config_service,
@@ -30,7 +32,10 @@ class GBAPokemonCoreFactory(GamesCore):
         }
 
         item_service = ItemService(**common_services)
-        event_service = EventService(**common_services, item_service=item_service)
+        wild_service = WildService(**common_services)
+        difficulty_service = DifficultyService(self.config_service)
+        event_service = EventService(**common_services, item_service=item_service, wild_services=wild_service,
+            difficulty_service=difficulty_service)
         bank_service = BankService(**common_services, event_service=event_service)
 
         stats_service = StatsService(self.config_service, memory_service, self.log_service)

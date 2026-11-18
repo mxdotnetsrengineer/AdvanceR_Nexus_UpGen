@@ -1,5 +1,9 @@
 {
     "warnings": {
-        "invalid_items_pointer": "El puntero de la tabla de objetos no es válido o está fuera de los límites del juego."
+        "invalid_items_pointer": "El puntero de la tabla de objetos no es válido o está fuera de los límites del juego.",
+        "banks": {
+            "empty_table_position": "Posición de memoria {ptr_memory}: [Vacía o reservada]",
+            "pointer_not_found": "No se encontró el puntero de bancos de mapas en el rango estándar. Puede tratarse de un juego modificado."
+        }
     }
 }

@@ -1,5 +1,5 @@
 import os
-from decorators.app_decorators import skip_when_disabled
+from decorators.app_decorators import skip_when_enabled
 from services.config_service import ConfigService
 from services.log_service import LogService
 from services.translations_service import TranslationsService
@@ -24,7 +24,7 @@ class FileService:
         with open(game_path, "rb") as f:
             return bytearray(f.read())
 
-    @skip_when_disabled("ONLY_DATABASE")
+    @skip_when_enabled("ONLY_DATABASE")
     def save_new_game_file(self, game_file: bytearray, output_path: str) -> None:
         if game_file is None:
             msg = self.translator.translate("errors.no_game_data")
