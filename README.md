@@ -43,12 +43,12 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 
 Currently, the engine supports the following **Game Boy Advance (Gen III)** titles via dedicated JSON configuration profiles:
 
-| Platform | Game Title | Version / Base | Status | Supported Features | Extended Features | 
-| :--- | :--- | :--- | :--- | :--- |
+| Platform | Game Title | Version / Base | Status | Supported Features | Extended Features |
+| :--- | :--- | :--- | :--- | :--- | :--- |
 | **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer | BST-Scaled Wild Randomizer |
 | **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer | BST-Scaled Wild Randomizer |
-| **GBA** | **Pokémon Emerald** | USA | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
-| **GBA** | **Pokémon Emerald Kaizo** | Emerald USA Base | ✅ Ready | Item Randomizer, Spanish Keyboard Patch |
+| **GBA** | **Pokémon Emerald** | USA | ✅ Ready | Item Randomizer, Spanish Keyboard Patch | — |
+| **GBA** | **Pokémon Emerald Kaizo** | Emerald USA Base | ✅ Ready | Item Randomizer, Spanish Keyboard Patch | — |
 
 > 💡 **Interested in Extended Features?**  
 > Features like the **BST-Scaled Wild Randomizer** are available for you. If you'd like to get access or learn more about the project, feel free to reach out at the email **[mexican.dotnet.senior.engineer@gmail.com](mailto:mexican.dotnet.senior.engineer@gmail.com)**.
