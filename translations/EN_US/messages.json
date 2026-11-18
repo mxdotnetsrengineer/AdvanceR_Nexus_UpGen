@@ -1,13 +1,15 @@
 {
     "messages": {
+        "yes" : "Yes",
+        "no": "No",
         "decryption_complete": "Pure manual binary decryption complete!",
         "games": {
             "starting_modification": "Starting modification on {game_name}..."
         },
         "banks": {
             "decryption_start": "PURE DECRYPTION START: Root Map Bank Table at {offset}",
-            "empty_table_position": "Core Table Position {position}: [Empty or Reserved]",
-            "table_pointer_found": "Core Table Position {position} -> Bank List pointer points to PC offset: {offset}",
+            "table_pointer_found": "Core Table Memory {ptr_memory} -> Bank List pointer points to PC offset: {offset}",
+            "is_bank_table": "Is bank table?: {answer}",
             "bank_entry": "Bank ID {bank_id} | Map List Base: {offset}",
             "map_entry": "Map ID {map_id} | Name: {name} | Header: {header} | Size: {width}x{height}"
         }

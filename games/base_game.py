@@ -24,7 +24,7 @@ class BaseGame(ABC):
         self.memory_service = memory_service
 
     @abstractmethod
-    def process_game(self) -> None:
+    async def process_game(self) -> None:
         pass
 
     def _get(self, property_name: str):
