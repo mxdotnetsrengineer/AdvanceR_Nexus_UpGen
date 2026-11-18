@@ -5,7 +5,7 @@ from helpers.gba.pokemon.gba_pokemon_helper import GAMES
 from games.core.games_provider import GamesProvider
 
 if __name__ == "__main__":
-    current_game = AvailableGames.RADICAL_FIRE_RED
+    current_game = AvailableGames.ORIGINAL_FIRE_RED
     init_global_config(GAMES[int(current_game.value)])
     
     game_instance = GamesProvider.create(
