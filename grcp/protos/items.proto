@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package items;
+
+service ItemsService {
+  rpc GetAllItems (GetAllItemsRequest) returns (GetAllItemsResponse);
+}
+
+message GetAllItemsRequest {
+  bytes game_file = 1;
+  optional int32 game_id = 2;
+}
+
+message CompiledItemProto {
+  int32 id = 1;
+  string name = 2;
+  string pocket = 3;
+  int32 pocket_id = 4;
+  string item_type = 5;
+  int32 item_type_id = 6;
+  int32 price = 7;
+}
+
+message GetAllItemsResponse {
+  map<int32, CompiledItemProto> items = 1;
+}
