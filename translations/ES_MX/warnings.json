@@ -4,6 +4,9 @@
         "banks": {
             "empty_table_position": "Posición de memoria {ptr_memory}: [Vacía o reservada]",
             "pointer_not_found": "No se encontró el puntero de bancos de mapas en el rango estándar. Puede tratarse de un juego modificado."
+        },
+        "stats": {
+            "no_valid_offsets" : "No se encontraron offsets válidos para stats, nombres o evoluciones."
         }
     }
 }

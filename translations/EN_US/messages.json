@@ -3,15 +3,27 @@
         "yes" : "Yes",
         "no": "No",
         "decryption_complete": "Pure manual binary decryption complete!",
-        "games": {
-            "starting_modification": "Starting modification on {game_name}..."
-        },
         "banks": {
             "decryption_start": "PURE DECRYPTION START: Root Map Bank Table at {offset}",
             "table_pointer_found": "Core Table Memory {ptr_memory} -> Bank List pointer points to PC offset: {offset}",
             "is_bank_table": "Is bank table?: {answer}",
             "bank_entry": "Bank ID {bank_id} | Map List Base: {offset}",
             "map_entry": "Map ID {map_id} | Name: {name} | Header: {header} | Size: {width}x{height}"
+        },
+        "wilds" : {
+            "grass_randomized" : "Wild events randomized in [{bank_id} - {bank_label}] | Map [{map_id} - {map_name}]:\n  {replacements}"
+        },
+        "stats": {
+            "reading_table_start": "Starting Pokémon table read from pointer: {offset}",
+            "tables_location": "Stats Table at: {stats_offset} | Names Table at: {names_offset} | Evolution Tables at: [{evos_offsets}]",
+            "stat_entry": "ID #{id} - {name} (Stage {stage}) ({offset}) | BST:{bst} [HP:{hp} ATK:{atk} DEF:{def_} SPD:{spd} SPA:{spa} SPD:{spdef}] | Types: {type_1}/{type_2} | Abilities: {ability_1}/{ability_2} | Catch Rate: {catch_rate}"
+        },
+        "games": {
+            "starting_modification": "Starting modification on {game_name}..."
+        },
+        "items": {
+            "table_header": "ID{s1}NAME{s2}POCKET{s3}TYPE{s4}PRICE{s5}RANDOM",
+            "item_entry": "ID #{id} - {name} | Pocket: {pocket} ({pocket_id}) | Type: {item_type} | Price: ${price}"
         }
     },
     "events": {

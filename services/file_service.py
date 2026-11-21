@@ -15,7 +15,6 @@ class FileService:
         self.translator = translations_service
         self.config = config_service
 
-    # Public Methods
     def open_game(self, game_path: str) -> bytearray:
         if not game_path or not os.path.exists(game_path):
             msg = self.translator.translate("errors.game_not_found", game_path=game_path)
@@ -38,4 +37,3 @@ class FileService:
         self.log.info(self.translator.translate("messages.decryption_complete"))
         with open(output_path, "wb") as f:
             f.write(game_file)
-    # End Public Methods

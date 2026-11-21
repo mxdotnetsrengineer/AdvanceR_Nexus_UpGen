@@ -1,3 +1,4 @@
+import redis.asyncio as redis
 from abc import ABC, abstractmethod
 from typing import Any
 from enums.gba.games_enum import AvailableGames
@@ -8,7 +9,7 @@ from services.translations_service import TranslationsService
 
 class BaseGame(ABC):
     def __init__(
-        self,
+        _self,
         game: AvailableGames,
         file_service: FileService,
         log_service: LogService,
@@ -16,12 +17,14 @@ class BaseGame(ABC):
         config_service: ConfigService,
         translations_service: TranslationsService,
     ):
-        self.game = game
-        self.file_service = file_service
-        self.log_service = log_service
-        self.config_service = config_service
-        self.translations_service = translations_service
-        self.memory_service = memory_service
+        _self.game = game
+        _self.file_service = file_service
+        _self.log_service = log_service
+        _self.config_service = config_service
+        _self.translations_service = translations_service
+        _self.memory_service = memory_service
+
+        _self.client = redis.Redis(host="127.0.0.1", port=6379, db=0, decode_responses=True)
 
     @abstractmethod
     async def process_game(self) -> None:

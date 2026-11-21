@@ -36,3 +36,7 @@ class CompiledBaseStats:
     @property
     def offset_hex(self) -> str:
         return hex(self.offset)
+
+    @classmethod
+    def dict_to_class(cls, stat_data: dict) -> CompiledBaseStats:
+        return cls(**stat_data)

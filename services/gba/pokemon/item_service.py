@@ -1,6 +1,9 @@
 import random
+import json
 from collections.abc import Callable
+from enums.gba.pokemon.gba_pokemon_enums import ItemPockets, ItemSubCategories
 from models.gba.pokemon.compiled_event import CompiledEvent
+from models.gba.pokemon.compiled_item import CompiledItem
 from helpers.gba.games_helper import GBA_PTR_BYTE_SIZE, STRING_TERMINATOR
 from services.config_service import ConfigService
 from services.log_service import LogService
@@ -9,38 +12,68 @@ from services.gba.memory_service import GBAMemoryService
 
 class ItemService:
     def __init__(
-        self,
+        _self,
         config_service: ConfigService,
         memory_service: GBAMemoryService,
         log_service: LogService,
         translations_service: TranslationsService,
     ):
-        self.config = config_service
-        self.memory = memory_service
-        self.log = log_service
-        self.translator = translations_service
+        _self.config = config_service
+        _self.memory = memory_service
+        _self.log = log_service
+        _self.translator = translations_service
+
+        _self.items = []
 
     # Public Methods
-    def get_all_items(self, game_file: bytearray) -> dict[int, str]:
-        items_table_offset = self.memory.pointer_to_offset(game_file, self.config.get("ITEMS_POINTER_OFFSET"))
+    async def get_all_items(_self, game_file: bytearray) -> dict[int, str]:
+        """Read and parse all items from the game file item data table up to MAX_ITEM_ID."""
+        items_ptr_offset = _self.config.get("ITEMS_POINTER_OFFSET")
+        ptr_data = (
+            _self.memory.read_u32_array(game_file, items_ptr_offset, count=1)
+            if items_ptr_offset is not None
+            else ()
+        )
+        
+        items_table_offset = (
+            _self.memory.pointer_to_offset(ptr_data[0]) if ptr_data else None
+        )
 
-        if not items_table_offset or items_table_offset >= len(game_file):
-            self.log.warning(self.translator.translate("warnings.invalid_items_pointer"))
+        if items_table_offset is None or items_table_offset >= len(game_file):
+            _self.log.warning(_self.translator.translate("warnings.invalid_items_pointer"))
             return {}
 
-        items: dict[int, str] = {}
-        for item_id in range(self.config.get("MAX_ITEM_ID") + 1):
-            item_name = self.get_item_name(game_file, item_id, items_table_offset)
-            items[item_id] = item_name
-            self.log.info(self.translator.translate("items.item_entry", item_id=item_id, item_name=item_name), False)
+        _self.log.raw("=" * 80)
+        _self.log.info(
+        _self.translator.translate(
+            "messages.items.table_header", s1=f"{'':<4}", s2=f"{'':<11}", s3=f"{'':<9}", s4=f"{'':<4}", s5=f"{'':<3}"
+        ),False)
+        _self.log.raw("=" * 80)
+
+        items: dict[int, CompiledItem] = {}
+        for item_id in range(_self.config.get("MAX_ITEM_ID") + 1):
+            item = _self.__get_item_data(game_file, item_id, items_table_offset)
+            if item:
+                items[item_id] = item
+                _self.log.info(
+                    _self.translator.translate(
+                        "messages.items.item_entry",
+                        id=f"{item.id:03d}",
+                        name=f"{item.name:<14}",
+                        pocket=f"{item.pocket.name:<10}",
+                        pocket_id=item.pocket.value,
+                        item_type=f"0x{item.item_type:02X}",
+                        price=f"{item.price:5d}"
+                    ),
+                    False,
+                )
 
         return items
 
     def execute_item_function(
-    _self,
+    __self,
     game_file: bytearray,
     event: CompiledEvent,
-    script_entry_offset: int,
     item_handler: Callable[[bytearray], bytes | bytearray],
     ) -> None:
         """If is item execute function."""
@@ -57,22 +90,22 @@ class ItemService:
             event_has_item = copyvar_opcode in original_script_bytes and std_obtain_item_bytes in original_script_bytes
         
         if event_has_item:
-            item_handler(game_file, script_entry_offset)
+            item_handler(game_file, event)
 
-    def randomize_pokeballs(self, game_file: bytearray, quantity: int = 1) -> bytearray:
+    def randomize_pokeballs(_self, game_file: bytearray, quantity: int = 1) -> bytearray:
         """Generate a randomized giveitem script bytearray for a Poké Ball event."""
-        items_ptr = self.config.get("ITEMS_POINTER_OFFSET")
+        items_ptr = _self.config.get("ITEMS_POINTER_OFFSET")
         items_table_ptr = game_file[items_ptr : items_ptr + GBA_PTR_BYTE_SIZE]
-        items_table_offset = self.memory.pointer_to_offset(items_table_ptr)
+        items_table_offset = _self.memory.pointer_to_offset(items_table_ptr)
 
         if items_table_offset is None:
             return bytearray()
 
-        max_item_id = self.config.get("MAX_ITEM_ID")
+        max_item_id = _self.config.get("MAX_ITEM_ID")
 
         while True:
             random_new_item = random.randint(1, max_item_id)
-            item_name = self.get_item_name(game_file, random_new_item, items_table_offset)
+            item_name = _self.get_item_name(game_file, random_new_item, items_table_offset)
             if "???" not in item_name and item_name != "UNKNOWN":
                 break
 
@@ -91,34 +124,74 @@ class ItemService:
             end_opcode,
         ])
 
-        self.log.info(
-            self.translator.translate("items.pokeball_repointed", item_id=random_new_item, item_name=item_name),
-            False,
-        )
+        _self.log.info(_self.translator.translate("items.pokeball_repointed", item_id=random_new_item, item_name=item_name),False)
         return new_script_bytes
+
+    def load_from_json(self, items_json: str) -> None:
+        """Deserialize a JSON string into a list of Item instances."""
+        self.items = [
+            CompiledItem.dict_to_class(item_data) for item_data in json.loads(items_json)
+        ]
     # End Public Methods
     # Private Methods
-    def get_item_name(self, game_file: bytearray, item_id: int, items_table_offset: int | None = None) -> str:
+    def get_item_name(_self, game_file: bytearray, item_id: int, items_table_offset: int | None = None) -> str:
         """Resolve the readable name of an item by its ID from the item data table."""
+        item = _self.__get_item_data(game_file, item_id, items_table_offset)
+        return item.name if item else "UNKNOWN"
+
+    def __get_item_data(_self, game_file: bytearray, item_id: int, items_table_offset: int | None = None,):
+        """Read the 44-byte item structure by its ID from the item table and return a item object."""
         game_size = len(game_file)
-        item_name_max_length = 14 # In Gen III, item structs allocate 14 bytes for the name (13 characters + 1 terminator byte 0xFF)
 
         if items_table_offset is None:
-            items_ptr = self.config.get("ITEMS_POINTER_OFFSET")
+            items_ptr = _self.config.get("ITEMS_POINTER_OFFSET")
             if items_ptr is None or items_ptr + GBA_PTR_BYTE_SIZE > game_size:
-                return "UNKNOWN"
+                return None
 
-            items_table_ptr = game_file[items_ptr : items_ptr + GBA_PTR_BYTE_SIZE]
-            items_table_offset = self.memory.pointer_to_offset(items_table_ptr)
+            items_table_offset = _self.memory.pointer_to_offset(
+                game_file[items_ptr : items_ptr + GBA_PTR_BYTE_SIZE]
+            )
 
-        if items_table_offset is None or items_table_offset >= game_size:
-            return "UNKNOWN"
+        item_struct_size = _self.config.get("ITEM_STRUCT_SIZE")
+        if items_table_offset is None or item_struct_size is None:
+            return None
 
-        item_struct_size = self.config.get("ITEM_STRUCT_SIZE")
         item_struct_offset = items_table_offset + (item_id * item_struct_size)
+        if item_struct_offset < 0 or item_struct_offset + item_struct_size > game_size:
+            return None
 
-        if item_struct_offset + item_name_max_length > game_size:
-            return "UNKNOWN"
+        name = _self.memory.read_string(
+            game_file, item_struct_offset, max_length=14
+        )
 
-        return self.memory.read_string(game_file, item_struct_offset, max_length=item_name_max_length)
+        data = _self.memory.unpack(game_file, item_struct_offset + 0x10, "<H8xBB")
+        if not data:
+            return None
+
+        price, raw_pocket, raw_type = data
+
+        try:
+            pocket = ItemPockets(raw_pocket)
+        except ValueError:
+            pocket = ItemPockets.UNKNOWN
+
+        if pocket == ItemPockets.POKE_BALLS:
+            item_type = ItemSubCategories.NONE
+        elif pocket == ItemPockets.BERRIES:
+            item_type = ItemSubCategories.PARTY_CONSUMABLE
+        elif pocket == ItemPockets.KEY_ITEMS and raw_type == 4:
+            item_type = ItemSubCategories.NONE
+        else:
+            try:
+                item_type = ItemSubCategories(raw_type)
+            except ValueError:
+                item_type = ItemSubCategories.UNKNOWN
+
+        return CompiledItem(
+            id=item_id,
+            name=name,
+            pocket=pocket,
+            item_type=item_type,
+            price=price,
+        )
     # Private Methods

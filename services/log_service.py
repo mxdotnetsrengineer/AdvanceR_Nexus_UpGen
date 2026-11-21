@@ -1,21 +1,21 @@
 from typing import NoReturn
-from enums.logs_enum import LogLevel
+from enums.logs_enum import LogLevels
 from helpers.logs_helper import ERROR_TYPES, ALLOWED_OUTPUTS
 from services.translations_service import TranslationsService
 
 class LogService:
-    def __init__(self,translations_service: TranslationsService, level: LogLevel | str = LogLevel.ALL, **kwargs):
+    def __init__(_self,translations_service: TranslationsService, level: LogLevels | str = LogLevels.ALL, **kwargs):
         super().__init__(**kwargs)
-        self._translator = translations_service
-        self.logs: list[str] = []
-        self._allowed_channels: set[str] = ALLOWED_OUTPUTS[LogLevel.ALL]
-        self._set_level(level)
+        _self._translator = translations_service
+        _self.logs: list[str] = []
+        _self.allowed_channels: set[str] = ALLOWED_OUTPUTS[LogLevels.ALL]
+        _self.__set_level(level)
 
     # Public Methods
-    def raw(self, message: str = "") -> None:
-        self._record(message, "info")
+    def raw(_self, message: str = "") -> None:
+        _self.__record(message, "info")
 
-    def info(self, message: str = "", show_icon: bool = True) -> None:
+    def info(_self, message: str = "", show_icon: bool = True) -> None:
         if not message:
             formatted = ""
         elif show_icon:
@@ -23,36 +23,36 @@ class LogService:
         else:
             formatted = message
 
-        self._record(formatted, "info")
+        _self.__record(formatted, "info")
 
-    def warning(self, message: str) -> None:
-        self._record(f"⚠️ {message}", "warning")
+    def warning(_self, message: str) -> None:
+        _self.__record(f"⚠️ {message}", "warning")
 
-    def error(self, message: str, error_key: str = "runtime") -> NoReturn:
-        self._record(f"❌ {message}", "error")
+    def error(_self, message: str, error_key: str = "runtime") -> NoReturn:
+        _self.__record(f"❌ {message}", "error")
         exception_cls = ERROR_TYPES.get(error_key, RuntimeError)
         raise exception_cls(message)
 
-    def get_logs(self) -> list[str]:
-        return self.logs
+    def get_logs(_self) -> list[str]:
+        return _self.logs
     # End Public Methods
 
     # Private Methods
-    def _record(self, formatted_message: str, channel: str) -> None:
-        self.logs.append(formatted_message)
-        if channel in self._allowed_channels:
+    def __record(_self, formatted_message: str, channel: str) -> None:
+        _self.logs.append(formatted_message)
+        if channel in _self.allowed_channels:
             print(formatted_message)
 
-    def _set_level(self, level: LogLevel | str) -> None:
+    def __set_level(_self, level: LogLevels | str) -> None:
         try:
-            parsed_level = LogLevel(level)
-            self._allowed_channels = ALLOWED_OUTPUTS[parsed_level]
+            parsed_level = LogLevels(level)
+            _self.allowed_channels = ALLOWED_OUTPUTS[parsed_level]
         except ValueError:
-            valid_options = ", ".join(item.value for item in LogLevel)
+            valid_options = ", ".join(item.value for item in LogLevels)
             invalid = "Invalid log level"
-            if self._translator:
-                invalid = self._translator.translate("errors.invalid_log")
+            if _self._translator:
+                invalid = _self._translator.translate("errors.invalid_log")
 
             msg = f"{invalid} '{level}'. Valid options: {valid_options}"
-            self.error(msg, error_key="value")
+            _self.error(msg, error_key="value")
     # End Private Methods

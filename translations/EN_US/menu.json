@@ -1,0 +1,41 @@
+{
+    "menu": {
+        "title": "AdvanceR Nexus UpGen & gRPC [{lang}]",
+        "hints": {
+            "main": "[ESC] Exit",
+            "sub": "[0 / Backspace] Back  |  [ESC] Exit"
+        },
+        "options": {
+            "start_app": "1. Start App (Randomizer / gRPC Server)",
+            "test_grpc": "2. Test gRPC Client",
+            "change_language": "3. Change Language"
+        },
+        "prompts": {
+            "select_option": "Select an option",
+            "language": "Language",
+            "mode": "Mode",
+            "test_mode": "Test Mode",
+            "game": "Game"
+        },
+        "headers": {
+            "select_language": "--- Select Language ---",
+            "select_mode": "--- Select Execution Mode ---",
+            "select_test_mode": "--- Select gRPC Test Mode ---",
+            "select_game": "--- Select Game ---"
+        },
+        "modes": {
+            "randomizer": "1. Generator & Randomizer",
+            "grpc_server": "2. Start gRPC Server"
+        },
+        "test_modes": {
+            "loaded_game": "1. Use Server Loaded Game",
+            "replace_game": "2. Replace Server Game (Send Game File)"
+        },
+        "messages": {
+            "exiting": "Exiting application...",
+            "current_tag": " (Current)",
+            "language_updated": "✔ Language updated to: {label}",
+            "invalid_option": "Invalid option. Please try again."
+        }
+    }
+}
