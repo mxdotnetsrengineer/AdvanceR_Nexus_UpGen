@@ -2,6 +2,32 @@
 
 All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
 
+## [v1.3.1] - 2026-11-20
+
+### Added
+- **Interactive Multi-Language Console Menu (`ConsoleMenu`)**: Created `tools/menu.py` and `tools/user_selection.py` with live locale switching (`EN_US` / `ES_MX`), screen clearing (`__clear_screen`), `ESC` instant exit, and multi-level `Backspace`/`0` back-navigation across execution modes, gRPC tests, and game selection.
+- **Redis Caching Layer for Compiled Game Data**: Integrated `redis.asyncio` in `BaseGame` (`games/base_game.py`) and `GBAPokemonGame` (`games/gba/pokemon/gba_pokemon_game.py`) along with `load_from_json` deserializers (`dict_to_class`) across `BankService`, `StatsService`, `ItemService`, `CompiledBank`, `CompiledMap`, `CompiledEvent`, `CompiledBaseStats`, and `CompiledItem` to cache parsed banks, species stats, and items with a 1-hour TTL.
+- **Standalone `AppsTranslations` Engine & Menu Locales**: Extracted translation loading and key flattening into `translations/app_translations.py` with `Enum` locale normalization (`__normalize_locale`) and added `menu.json` locale files under `translations/EN_US/` and `translations/ES_MX/`.
+
+### Changed
+- **Split Global & Game Configuration Initialization**: Refactored `settings.py` into `init_global_config()` (startup shared/options loading) and `init_game_config()` (game-specific offsets, difficulty, and feature flags) to preserve user-selected menu languages across game loads.
+- **Updated Entry Point (`main.py`)**: Replaced hardcoded game execution with `ConsoleMenu` routing for Randomizer, Secure gRPC Server, and gRPC Client test modes.
+
+## [v1.3.0] - 2026-11-19
+
+### Added
+- **Game Item Table Parser & Models**: Implemented `CompiledItem` (`models/gba/pokemon/compiled_item.py`), `ItemPockets`, `ItemSubCategories`, and `BankMethods` enums (`enums/gba/pokemon/gba_pokemon_enums.py`), plus `ItemService.get_all_items()` to extract item IDs, names, pockets, subcategories, and prices from GBA Game.
+- **Binary Struct Unpacking Helper**: Added `GBAMemoryService.unpack()` (`services/gba/memory_service.py`) wrapping `struct.unpack_from` with bounds validation.
+
+### Changed
+- **Service Decoupling & Encapsulation**: Renamed `EventService` to `EventsService` (`services/gba/pokemon/events_service.py`), moved wild encounter orchestration directly into `WildService` (`CompiledWildEvents`), wired services independently via `GBAPokemonCoreFactory` (`games/core/gba_pokemon_core.py`), and standardized internal helper methods with private `__` naming and `# Public Methods` / `# Private Methods` sections across `BankService`, `StatsService`, `ItemService`, `WildService`, and `LogService`.
+
+## [v1.2.2] - 2026-11-18
+
+### Added
+- **Secure Async gRPC Server & Items Service**: Added `grcp/protos/items.proto`, PowerShell proto compiler script (`grcp/compile_protos.ps1`), generated protobuf bindings (`grcp/generated/`), and `ItemsGrpcServicer` (`grcp/servicers/items_servicer.py`) exposing `GetAllItems` over TLS (`grpc.aio.server`) with support for both server-loaded Games and custom client-uploaded Games files.
+- **gRPC Client Test Runner & Dependencies**: Added `test_grpc` client verification in `main.py` and created `requirements.txt` (`grpcio`, `grpcio-tools`, `cryptography`, `redis`).
+
 ## [v1.2.1] - 2026-11-17
 
 ### Added
@@ -12,7 +38,7 @@ All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
 - **Expanded Locale Messages & Warnings**: Added localized keys (`messages.yes`, `messages.no`, `messages.banks.is_bank_table`, `warnings.banks.empty_table_position`, `warnings.banks.pointer_not_found`) across `EN_US` and `ES_MX` translation files.
 
 ### Changed
-- **Direct Offset Configuration Schema**: Replaced pointer-based config keys (`BANK_TABLE_OFFSET`, `POKEMON_STATS_POINTER_OFFSET`, `POKEMON_NAMES_POINTER_OFFSET`, `WILD_POKEMON_POINTER_OFFSET`) with direct ROM offsets (`0x486578` for Emerald/Kaizo and `0x3526a8` for FireRed/Radical Red) and swapped the swapped filenames between `emerald_config.json` and `emerald_kaizo_config.json`.
+- **Direct Offset Configuration Schema**: Replaced pointer-based config keys (`BANK_TABLE_OFFSET`, `POKEMON_STATS_POINTER_OFFSET`, `POKEMON_NAMES_POINTER_OFFSET`, `WILD_POKEMON_POINTER_OFFSET`) with direct Games offsets (`0x486578` for Emerald/Kaizo and `0x3526a8` for FireRed/Radical Red) and swapped the swapped filenames between `emerald_config.json` and `emerald_kaizo_config.json`.
 - **Static & Encapsulated Binary Operations**: Converted `GBAMemoryService` pointer/string utilities into `@staticmethod` / `@classmethod` helpers, tightened bounds checking across `BankService`, `EventService`, `ItemService`, and `StatsService`, and encapsulated internal helper methods with private `__` naming.
 - **Inverted Database Flag Decorator**: Replaced `@skip_when_disabled("ONLY_DATABASE")` with `@skip_when_enabled("ONLY_DATABASE")` across `FileService`, `BankService`, `EventService`, and `GBAKeyboardService` for clearer boolean semantics.
 - **Updated Default Runtime & Gitignore Rules**: Set default language to `ES_MX` in `config/global_config.json`, and updated `MAX_BANK_SCAN_BYTES` (`0x2000`) and `GBA_POKEMON_III_CHAR_TABLE` in `helpers/gba/pokemon/gba_pokemon_helper.py`.
@@ -74,9 +100,9 @@ All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
 ## [v0.1.0] - 2026-11-05
 
 ### Added
-- **Multi-Game Configuration Architecture**: Implemented JSON based configuration files (`games/fire-red.json`, `games/radical-red.json`, and `games/global_config.json`) alongside `settings.py` to dynamically load ROM offsets, memory boundaries, and randomizer flags.
+- **Multi-Game Configuration Architecture**: Implemented JSON based configuration files (`games/fire-red.json`, `games/radical-red.json`, and `games/global_config.json`) alongside `settings.py` to dynamically load games offsets, memory boundaries, and randomizer flags.
 - **GBA Binary Decryption & Pointer Engine**: Added `helpers/consoles_helper.py` and `helpers/pointers_helper.py` to translate Little Endian GBA memory pointers (`0x08000000` range), decode proprietary GBA character tables, traverse map banks/headers, and locate safe `0xFF` free space blocks for binary injection.
-- **Overworld Pokéball Item Randomizer**: Added `helpers/instances_helper.py` and `helpers/map_helper.py` to scan map NPC events, identify ground Pokéball item scripts (filtering out starter Pokéballs), generate valid random items, and repoint custom XSE bytecode scripts into free ROM space.
+- **Overworld Pokéball Item Randomizer**: Added `helpers/instances_helper.py` and `helpers/map_helper.py` to scan map NPC events, identify ground Pokéball item scripts (filtering out starter Pokéballs), generate valid random items, and repoint custom XSE bytecode scripts into free game file space.
 - **Supported Games**: Added initial randomization support for **Pokémon FireRed (16MB)** and **Pokémon Radical Red v4.1 (32MB)**.
 - **Project Documentation & Licensing**: Added `README.md` with quick start instructions using `uv` and full configuration property references, along with an MIT `LICENSE` and Python `.gitignore`.
 

@@ -27,7 +27,7 @@ class ItemService:
 
     # Public Methods
     async def get_all_items(_self, game_file: bytearray) -> dict[int, str]:
-        """Read and parse all items from the ROM item data table up to MAX_ITEM_ID."""
+        """Read and parse all items from the game file item data table up to MAX_ITEM_ID."""
         items_ptr_offset = _self.config.get("ITEMS_POINTER_OFFSET")
         ptr_data = (
             _self.memory.read_u32_array(game_file, items_ptr_offset, count=1)

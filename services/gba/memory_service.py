@@ -31,7 +31,7 @@ class GBAMemoryService:
 
     @classmethod
     def offset_to_pointer_bytes(cls,offset: int) -> bytearray:
-        """Convert a file offset to a 4-byte little-endian bytearray ready to write into the ROM."""
+        """Convert a file offset to a 4-byte little-endian bytearray ready to write into the game file."""
         return bytearray(cls.offset_to_pointer(offset).to_bytes(GBA_PTR_BYTE_SIZE, byteorder="little"))
 
     @staticmethod
