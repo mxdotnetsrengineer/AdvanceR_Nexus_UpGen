@@ -108,3 +108,12 @@ class GBAMemoryService:
                 return aligned_offset
 
             current_search = aligned_offset
+
+    @staticmethod
+    def unpack(game_file: bytearray, offset: int, fmt: str) -> tuple:
+        """Unpack binary data at `offset` using a `struct` format string."""
+        size = struct.calcsize(fmt)
+        if offset < 0 or offset + size > len(game_file):
+            return ()
+
+        return struct.unpack_from(fmt, game_file, offset)

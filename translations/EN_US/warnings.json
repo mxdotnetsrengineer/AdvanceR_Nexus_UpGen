@@ -4,6 +4,9 @@
         "banks": {
             "empty_table_position": "Core Table Memory {ptr_memory}: [Empty or Reserved]",
             "pointer_not_found": "Could not find the map bank pointer in the standard range. This might be a modified game."
+        },
+        "stats": {
+            "no_valid_offsets" : "No valid offsets were found for stats, names, or evolutions."
         }
     }
 }

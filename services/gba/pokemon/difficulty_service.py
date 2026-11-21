@@ -10,6 +10,7 @@ class DifficultyService:
         _self.config = config_service
         _self._cached_difficulty_pools: list[tuple[int, list[CompiledBaseStats]]] | None = None
         _self.current_difficulty = _self.config.get("CURRENT_DIFFICULTY")
+        
     # Public Methods
     def get_difficulty_pools(_self, wild_grass_slot_count: int,wild_candidates: list[CompiledBaseStats]):
         """Return cached difficulty pools or a single fallback tier containing all wild candidates."""
@@ -57,6 +58,7 @@ class DifficultyService:
         return max(min_allowed, min(max_pokemon_level, new_level))
     
     # End Public Methods
+
     # Private Methods
     def __build_difficulty_pools(
         _self,

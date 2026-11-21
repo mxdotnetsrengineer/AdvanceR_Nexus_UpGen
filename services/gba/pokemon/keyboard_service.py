@@ -30,7 +30,7 @@ class GBAKeyboardService:
         _self.keyboards_logic = game_keyboards.logic
 
         #UI Sprites & Logic  True for more than one ocurrence, For example some games has 2 UPPER Keyboards in Memory
-        keyboards_occurrences = [1, 1, 1]
+        keyboards_occurrences = [2, 1, 1]
         match game:
             case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED | AvailableGames.EMERALD | AvailableGames.EMERALD_KAIZO:
                 _self.__spanish_replace_pokemon_gba()
