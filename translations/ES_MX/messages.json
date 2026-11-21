@@ -12,8 +12,20 @@
             "bank_entry": "Banco {bank_id} | Inicio de mapas: {offset}",
             "map_entry": "Mapa {map_id} | Nombre: {name} | Cabecera: {header} | Tamaño: {width}x{height}"
         },
+        "wilds" : {
+            "grass_randomized" : "Especies randomizadas en [{bank_id} - {bank_label}] | Mapa [{map_id} - {map_name}]:\n  {replacements}"
+        },
+        "stats": {
+            "reading_table_start": "Iniciando lectura de tabla Pokémon desde puntero: {offset}",
+            "tables_location": "Tabla de Stats en: {stats_offset} | Tabla de Nombres en: {names_offset} | Tablas de Evoluciones en: [{evos_offsets}]",
+            "stat_entry": "ID #{id} - {name} (Etapa {stage}) ({offset}) | BST:{bst} [HP:{hp} ATK:{atk} DEF:{def_} SPD:{spd} SPA:{spa} SPD:{spdef}] | Tipos: {type_1}/{type_2} | Habilidades: {ability_1}/{ability_2} | Ratio: {catch_rate}"
+        },
         "games": {
             "starting_modification": "Iniciando modificación en {game_name}..."
+        },
+        "items": {
+            "table_header": "ID{s1}NOMBRE{s2}BOLSILLO{s3}TIPO{s4}PRECIO{s5}RANDOM",
+            "item_entry": "ID #{id} - {name} | Bolsillo: {pocket} ({pocket_id}) | Tipo: {item_type} | Precio: ${price} | Randomizable: {safe}"
         }
     },
     "events": {

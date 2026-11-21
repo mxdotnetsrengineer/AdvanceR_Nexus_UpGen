@@ -32,7 +32,7 @@ class CurrentGameFactory:
             case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED:
                 from games.gba.pokemon.fire_red_game import FireRedGame
                 from services.gba.pokemon.bank_service import BankService
-                from services.gba.pokemon.event_service import EventService
+                from services.gba.pokemon.events_service import EventService
                 from services.gba.pokemon.item_service import ItemService
                 
                 item_service = ItemService(config_service=config_service,memory_service=memory_service,log_service=log_service,
@@ -61,7 +61,7 @@ class CurrentGameFactory:
             case AvailableGames.EMERALD:
                 from games.gba.pokemon.emerald_game import EmeraldGame
                 from services.gba.pokemon.bank_service import BankService
-                from services.gba.pokemon.event_service import EventService
+                from services.gba.pokemon.events_service import EventService
                 from services.gba.pokemon.item_service import ItemService
                 
                 item_service = ItemService(config_service=config_service,memory_service=memory_service,log_service=log_service,

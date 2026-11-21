@@ -7,7 +7,3 @@ class AvailableGames(Enum):
     CUSTOM_LEAF_GREEN = 3
     EMERALD = 4
     EMERALD_KAIZO = 5
-
-class AvailableLanguages(Enum):
-    EN_US = 0
-    ES_MX = 1

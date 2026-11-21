@@ -1,3 +1,4 @@
+import json
 from operator import attrgetter
 from models.gba.pokemon.compiled_base_stats import CompiledBaseStats
 from helpers.gba.games_helper import GBA_PTR_BYTE_SIZE
@@ -5,6 +6,7 @@ from helpers.gba.pokemon.gba_pokemon_helper import MEGA_EVO_METHODS
 from decorators.app_decorators import when_enabled
 from services.config_service import ConfigService
 from services.log_service import LogService
+from services.translations_service import TranslationsService
 from services.gba.memory_service import GBAMemoryService
 
 class StatsService:
@@ -13,6 +15,7 @@ class StatsService:
         config_service: ConfigService,
         memory_service: GBAMemoryService,
         log_service: LogService,
+        translations_service: TranslationsService
 
         
     ):
@@ -20,6 +23,7 @@ class StatsService:
         self.memory = memory_service
         self.log = log_service
         self.stats: list[CompiledBaseStats] = []
+        self.translator = translations_service
 
         self.max_species = self.config.get("MAX_POKEMON_SPECIES")
         self.name_length = self.config.get("POKEMON_NAME_LENGTH")
@@ -27,6 +31,7 @@ class StatsService:
         self.evo_entry_size = self.config.get("EVO_ENTRY_SIZE")   
         self.include_megas = self.config.get("INCLUDE_MEGA_EVOLUTIONS")
 
+    # Public Methods
     @when_enabled("BASE_STATS", default=True)
     async def get_all_species_data(self, game_file: bytearray) -> list[CompiledBaseStats]:
         """Read and compile base stats, names, and evolution stages for all Pokémon species."""
@@ -37,7 +42,7 @@ class StatsService:
         struct_size = self.config.get("POKEMON_STRUCT_SIZE")
 
         self.log.raw("=" * 80)
-        self.log.info(f"Iniciando lectura de tabla Pokémon desde puntero: {hex(stats_offset)}")
+        self.log.info(self.translator.translate("messages.stats.reading_table_start",offset=hex(stats_offset)))
         self.log.raw("=" * 80)
 
         if (
@@ -46,7 +51,7 @@ class StatsService:
             or stats_offset + GBA_PTR_BYTE_SIZE > game_size
             or names_offset + GBA_PTR_BYTE_SIZE > game_size
         ):
-            self.log.info("No se encontraron offsets válidos para stats, nombres o evoluciones.")
+            self.log.warning(self.translator.translate("warnings.stats.no_valid_offsets"))
             return []
 
         stats_table_ptr = game_file[stats_offset : stats_offset + GBA_PTR_BYTE_SIZE]
@@ -65,14 +70,17 @@ class StatsService:
         ]
 
         if stats_table_offset is None or names_table_offset is None or not evos_table_offsets:
-            self.log.info("No se encontraron offsets válidos para stats, nombres o evoluciones.")
+            self.log.warning(self.translator.translate("warnings.stats.no_valid_offsets"))
             return []
 
         evos_hex_str = ", ".join(hex(off) for off in evos_table_offsets)
         self.log.info(
-            f"Tabla de Stats en: {hex(stats_table_offset)} | "
-            f"Tabla de Nombres en: {hex(names_table_offset)} | "
-            f"Tablas de Evoluciones en: [{evos_hex_str}]"
+            self.translator.translate(
+                "messages.stats.tables_location",
+                stats_offset=hex(stats_table_offset),
+                names_offset=hex(names_table_offset),
+                evos_offsets=evos_hex_str
+            )
         )
         self.log.raw("-" * 80)
 
@@ -96,14 +104,22 @@ class StatsService:
         self.stats.sort(key=attrgetter("bst"))
         for stat in self.stats:
             self.log.info(
-                f"ID #{stat.id:03d} - {stat.name:<10} (Etapa {stat.evolution_stage}) ({stat.offset_hex}) | "
-                f"BST:{stat.bst:3d} [HP:{stat.hp:3d} ATK:{stat.attack:3d} DEF:{stat.defense:3d} "
-                f"SPD:{stat.speed:3d} SPA:{stat.sp_attack:3d} SPD:{stat.sp_defense:3d}] | "
-                f"Tipos: {stat.type_1}/{stat.type_2} | "
-                f"Habilidades: {stat.ability_1}/{stat.ability_2} | "
-                f"Ratio: {stat.catch_rate}"
+                self.translator.translate(
+                    "messages.stats.stat_entry", id=f"{stat.id:03d}", name=f"{stat.name:<10}", stage=stat.evolution_stage,
+                    offset=stat.offset_hex, bst=f"{stat.bst:3d}", hp=f"{stat.hp:3d}", atk=f"{stat.attack:3d}", def_=f"{stat.defense:3d}",
+                    spd=f"{stat.speed:3d}", spa=f"{stat.sp_attack:3d}", spdef=f"{stat.sp_defense:3d}", type_1=stat.type_1,
+                    type_2=stat.type_2, ability_1=stat.ability_1, ability_2=stat.ability_2, catch_rate=stat.catch_rate,
+                )
             )
 
+    def load_from_json(self, stats_json: str) -> None:
+        """Deserialize a JSON string into a list of PokemonStats instances."""
+        self.stats = [
+            CompiledBaseStats.dict_to_class(stat_data) for stat_data in json.loads(stats_json)
+        ]
+    # End Public Methods
+
+    # Private Methods
     def _allocate_family_recursive(
         self,
         game_file: bytearray,
@@ -136,7 +152,7 @@ class StatsService:
                 return
             existing_pokemon.evolution_stage = stage
         else:
-            stats_data = self._allocate_stats_data(
+            stats_data = self.__allocate_stats_data(
                 game_file, stats_table_offset, names_table_offset, species_id, struct_size, stage, is_mega
             )
             if stats_data is None:
@@ -147,7 +163,7 @@ class StatsService:
 
         ancestors.add(species_id)
         try:
-            for evo_id, evo_is_mega in self._get_species_evolutions(game_file, evos_table_offset, species_id):
+            for evo_id, evo_is_mega in self.__get_species_evolutions(game_file, evos_table_offset, species_id):
                 self._allocate_family_recursive(
                     game_file=game_file,
                     stats_table_offset=stats_table_offset,
@@ -163,7 +179,7 @@ class StatsService:
         finally:
             ancestors.remove(species_id)
 
-    def _get_species_evolutions(
+    def __get_species_evolutions(
         self,
         game_file: bytearray,
         evos_table_offset: int,
@@ -205,7 +221,7 @@ class StatsService:
 
         return evolutions
 
-    def _allocate_stats_data(
+    def __allocate_stats_data(
         self,
         game_file: bytearray,
         stats_table_offset: int,
@@ -279,3 +295,4 @@ class StatsService:
             evolution_stage=evolution_stage,
             is_mega=is_mega,
         )
+    # End Private Methods
