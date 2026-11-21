@@ -24,13 +24,6 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 * [🏗️ Architecture & Design Patterns](#%EF%B8%8F-architecture--design-patterns)
   * [System Layers](#system-layers)
   * [Design Patterns Used](#design-patterns-used)
-    * [1. Abstract Factory & Provider](#1-abstract-factory--factory-provider)
-    * [2. Template Method](#2-template-method)
-    * [3. Dependency Injection](#3-constructor-dependency-injection-di)
-    * [4. Data Transfer Object](#4-data-transfer-object)
-    * [5. Strategy / Declarative Configuration](#5-strategy--declarative-configuration-uikeyboardpatch)
-    * [6. Metaprogramming / Decorators](#6-custom-decorators--metaprogramming-when_enabled-keys_from_str)
-    * [7. Factory Method](#7-factory-method-deprecated)
 
 <h3 align="center">⚫ ⚫ ⚫ ⚫ ⚫ ⚫</h3>
 
