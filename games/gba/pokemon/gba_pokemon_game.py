@@ -59,9 +59,9 @@ class GBAPokemonGame(GBAGame):
             )
         )
 
-        bank_cont = f"rom:{_self.game.name}:banks"
-        stats_cont = f"rom:{_self.game.name}:stats"
-        items_cont = f"rom:{_self.game.name}:items"
+        bank_cont = f"game:{_self.game.name}:banks"
+        stats_cont = f"game:{_self.game.name}:stats"
+        items_cont = f"game:{_self.game.name}:items"
 
         banks_json, stats_json, items_json = await _self.client.mget( [bank_cont, stats_cont, items_cont])
         if not all([banks_json, stats_json, items_json]):

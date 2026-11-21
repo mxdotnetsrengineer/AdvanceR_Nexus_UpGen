@@ -38,7 +38,7 @@ class ItemsGrpcServicer(items_pb2_grpc.ItemsServiceServicer):
             if not server_game_file:
                 await context.abort(
                     grpc.StatusCode.FAILED_PRECONDITION,
-                    "No ROM loaded on server and no game_file provided.",
+                    "No game file provided.",
                 )
 
             compiled_items = await self.items_service.get_all_items(server_game_file)

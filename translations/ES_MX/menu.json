@@ -29,7 +29,7 @@
         },
         "test_modes": {
             "loaded_game": "1. Usar Juego Cargado en el Servidor",
-            "replace_game": "2. Reemplazar Juego del Servidor (Enviar ROM)"
+            "replace_game": "2. Reemplazar Juego del Servidor (Enviar Archivo Nuevo)"
         },
         "messages": {
             "exiting": "Saliendo de la aplicación...",
