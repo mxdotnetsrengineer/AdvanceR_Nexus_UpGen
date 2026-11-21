@@ -9,25 +9,25 @@ from games.gba.gba_game import GBAGame
 
 class GamesCore(ABC):
     def __init__(
-        self,
+        _self,
         config_service: ConfigService,
         log_service: LogService,
         file_service: FileService,
         translations_service: TranslationsService,
     ):
-        self.config_service = config_service
-        self.log_service = log_service
-        self.file_service = file_service
-        self.translations_service = translations_service
+        _self.config_service = config_service
+        _self.log_service = log_service
+        _self.file_service = file_service
+        _self.translations_service = translations_service
 
-    @abstractmethod
-    def create_memory_service(self) -> Any:
-        pass
-
-    @abstractmethod
-    def create_keyboard_service(self) -> Any:
-        pass
-
+    #Public Methods
     @abstractmethod
     def create_game(self, game: AvailableGames) -> GBAGame:
         pass
+    # End Public Methods
+    
+    #Protected Methods
+    @abstractmethod
+    def _create_memory_service(_self) -> Any:
+        pass
+    # End Protected Methods

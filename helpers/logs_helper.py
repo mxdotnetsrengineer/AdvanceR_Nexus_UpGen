@@ -1,4 +1,4 @@
-from enums.logs_enum import LogLevel
+from enums.logs_enum import LogLevels
 
 ERROR_TYPES: dict[str, type[Exception]] = {
     "value": ValueError,
@@ -10,11 +10,11 @@ ERROR_TYPES: dict[str, type[Exception]] = {
     "not_implemented": NotImplementedError,
 }
 
-ALLOWED_OUTPUTS: dict[LogLevel, set[str]] = {
-    LogLevel.NONE: set(),
-    LogLevel.INFO: {"info"},
-    LogLevel.WARNING: {"warning"},
-    LogLevel.ERROR: {"error"},
-    LogLevel.ERROR_AND_WARNING: {"error", "warning"},
-    LogLevel.ALL: {"info", "warning", "error"},
+ALLOWED_OUTPUTS: dict[LogLevels, set[str]] = {
+    LogLevels.NONE: set(),
+    LogLevels.INFO: {"info"},
+    LogLevels.WARNING: {"warning"},
+    LogLevels.ERROR: {"error"},
+    LogLevels.ERROR_AND_WARNING: {"error", "warning"},
+    LogLevels.ALL: {"info", "warning", "error"},
 }
