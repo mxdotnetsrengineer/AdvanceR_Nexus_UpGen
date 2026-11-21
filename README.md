@@ -154,7 +154,7 @@ The repository is organized by layers and platform domains so new consoles, game
 The system unifies global settings, game-specific binary layouts, and feature toggles at runtime via `init_global_config()` and `init_game_config()` (`settings.py`), automatically parsing hexadecimal strings (`0x...`) into integers:
 
 * **`config/global_config.json`:** Global behavior toggles (`RANDOMIZE_POKEBALLS_ITEMS`, `ADD_SPANISH_CHARS`, `RANDOMIZE_WILD_POKEMON`, `ONLY_DATABASE`, `CURRENT_LANGUAGE`, `LOG_TYPE`).
-* **`config/{console}/{series}/{game}_config.json`:** Title-specific pointer offsets, table sizes, and free-space boundaries. See the [FireRed Configuration Example](./readme/fire_red.md).
+* **`config/{console}/{series}/{game}_config.json`:** Title-specific pointer offsets, table sizes, and free-space boundaries. See the [FireRed Configuration Example](./readme/gba/pokemon/fire_red.md).
 * **`config/{console}/{series}/feature_flags.json`:** Optional granular pipeline toggles (`ALLOCATE_BANKS`, `ALLOCATE_MAPS`, `MAPS_EVENTS`).
 
 > 📖 For the full list of global keys and transient runtime state (`game_file`, `free_space_offset`), see the [Configuration Properties Reference](./readme/configuration.md).
