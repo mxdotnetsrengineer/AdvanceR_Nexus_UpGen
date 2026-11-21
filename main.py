@@ -1,19 +1,40 @@
 import asyncio
 import grpc
-from settings import init_global_config, init_game_config, current_config
+import redis.asyncio as redis
+import os
+from pathlib import Path
+
 from enums.gba.games_enum import AvailableGames
 from enums.app_enums import AvailableLanguages
 from helpers.gba.pokemon.gba_pokemon_helper import GAMES
-from games.core.games_provider import GamesProvider
 from tools.menu import ConsoleMenu
+from facades.items_facade import ItemsFacade
+from services.config_service import ConfigService
+from services.translations_service import TranslationsService
+from games.core.games_provider import GamesProvider
 
-from grcp.generated import items_pb2_grpc, items_pb2
-from grcp.servicers.items_servicer import ItemsGrpcServicer
+from grpc_files.generated import items_pb2_grpc, items_pb2
+from grpc_files.servicers.items_servicer import ItemsGrpcServicer
 
 MAX_MESSAGE_LENGTH = 48 * 1024 * 1024  # 48MB
+BASE_DIR = Path(__file__).resolve().parent
 
+def _create_redis_client(config_service: ConfigService) -> redis.Redis:
+    """Instantiate an async Redis client using global configuration settings."""
+    return redis.Redis(
+        host=config_service.get("REDIS_HOST", "127.0.0.1"),
+        port=config_service.get("REDIS_PORT", 6379),
+        db=config_service.get("REDIS_DB", 0),
+        decode_responses=True,
+    )
 
-async def __build_grpc_server(game_instance, port: int = 50051) -> grpc.Server:
+def _resolve_ssl_path(config_service: ConfigService, config_key: str, default_rel: str) -> Path:
+    """Resolve SSL file path from environment variable or config relative to project root."""
+    raw_path = os.getenv(config_key) or config_service.get(config_key, default_rel)
+    path = Path(raw_path)
+    return path if path.is_absolute() else BASE_DIR / path
+
+async def _build_grpc_server(game_instance, port: int = 50051) -> grpc.Server:
     """Configure and serve the async secure gRPC server instance."""
     server = grpc.aio.server(
         options=[
@@ -22,21 +43,22 @@ async def __build_grpc_server(game_instance, port: int = 50051) -> grpc.Server:
         ],
     )
 
+    items_facade = ItemsFacade(game_instance.items_service)
     items_pb2_grpc.add_ItemsServiceServicer_to_server(
-        ItemsGrpcServicer(game_instance.items_service), server
+        ItemsGrpcServicer(items_facade), server
     )
 
-    with open("grcp/server.key", "rb") as f:
-        private_key = f.read()
-    with open("grcp/server.crt", "rb") as f:
-        certificate_chain = f.read()
+    key_path = _resolve_ssl_path(game_instance.config_service, "GRPC_KEY_PATH", "grpc_files/server.key")
+    cert_path = _resolve_ssl_path(game_instance.config_service, "GRPC_CERT_PATH", "grpc_files/server.crt")
+
+    private_key = key_path.read_bytes()
+    certificate_chain = cert_path.read_bytes()
 
     server_credentials = grpc.ssl_server_credentials(
         [(private_key, certificate_chain)]
     )
     server.add_secure_port(f"[::]:{port}", server_credentials)
 
-    #serve
     await server.start()
     print(f"\nAsync Secure gRPC Server listening on port {port}...")
     await server.wait_for_termination()
@@ -48,10 +70,11 @@ def run_randomizer(game_instance) -> None:
 
 
 def run_grpc(game_instance, port: int = 50051) -> None:
-    asyncio.run(__build_grpc_server(game_instance, port))
+    asyncio.run(_build_grpc_server(game_instance, port))
 
 
 def test_grpc(
+        config_service: ConfigService,
     selected_game: AvailableGames | None = None,
     host: str = "localhost",
     port: int = 50051,
@@ -62,8 +85,8 @@ def test_grpc(
     mode_label = f"WITH Custom Game ({selected_game.name})" if send_game else "Server Selected Game"
     print(f"\n[TEST - {mode_label}] Connecting to gRPC server at {target}...")
 
-    with open("grcp/server.crt", "rb") as f:
-        trusted_certs = f.read()
+    cert_path = _resolve_ssl_path(config_service, "GRPC_CERT_PATH", "grpc_files/server.crt")
+    trusted_certs = cert_path.read_bytes()
 
     credentials = grpc.ssl_channel_credentials(root_certificates=trusted_certs)
 
@@ -78,9 +101,10 @@ def test_grpc(
         stub = items_pb2_grpc.ItemsServiceStub(channel)
 
         if send_game:
-            game_path = current_config.get("ORIGINAL_GAME")
-            with open(game_path, "rb") as f:
-                game_bytes = f.read()
+            game_config = ConfigService.load_for_game(GAMES[int(selected_game.value)])
+            raw_game_path = Path(game_config.get("ORIGINAL_GAME"))
+            game_path = raw_game_path if raw_game_path.is_absolute() else BASE_DIR / raw_game_path
+            game_bytes = game_path.read_bytes()
 
             request = items_pb2.GetAllItemsRequest(
                 game_file=game_bytes,
@@ -102,40 +126,36 @@ def test_grpc(
         )
     print("=" * 80)
 
-
-def setup_game_config(game: AvailableGames, language: AvailableLanguages) -> None:
-    """Initialize global configuration and apply the user-selected language."""
-    init_game_config(GAMES[int(game.value)])
-    if language is not None:
-        current_config["CURRENT_LANGUAGE"] = language
-
-
 if __name__ == "__main__":
-    init_global_config()
-    raw_lang = current_config.get("CURRENT_LANGUAGE")
+    global_config = ConfigService.load_global()
+    raw_lang = global_config.get("CURRENT_LANGUAGE")
     default_lang = AvailableLanguages[raw_lang] if raw_lang in AvailableLanguages.__members__ else AvailableLanguages.EN_US
-
-    menu = ConsoleMenu(default_language=default_lang)
+    
+    translator = TranslationsService(default_lang.name)
+    menu = ConsoleMenu(translator,default_lang)
     selection = menu.run()
 
     if selection is None:
         exit(0)
 
-    if selection.action in ("randomizer", "grpc_server") and selection.game:
-        setup_game_config(selection.game, selection.language)
+    if selection.action == "randomizer" and selection.game:
+        redis_client = _create_redis_client(global_config)
         game_instance = GamesProvider.create(
             game=selection.game,
-            game_config=current_config,
+            language=selection.language,
+            redis_client=redis_client,
         )
+        run_randomizer(game_instance)
 
-        if selection.action == "randomizer":
-            run_randomizer(game_instance)
-        else:
-            run_grpc(game_instance)
-
+    elif selection.action == "grpc_server" and selection.game:
+        game_instance = GamesProvider.create(
+            game=selection.game,
+            language=selection.language,
+        )
+        run_grpc(game_instance)
+        
     elif selection.action == "grpc_test_loaded":
-        test_grpc(selected_game=None)
+        test_grpc(global_config,selected_game=None)
 
     elif selection.action == "grpc_test_replace" and selection.game:
-        setup_game_config(selection.game, selection.language)
-        test_grpc(selected_game=selection.game)
+        test_grpc(global_config,selected_game=selection.game)

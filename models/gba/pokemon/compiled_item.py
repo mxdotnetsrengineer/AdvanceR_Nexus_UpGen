@@ -17,5 +17,11 @@ class CompiledItem:
             )
 
     @classmethod
-    def dict_to_class(cls, item_data: dict) -> CompiledItem:
-        return cls(**item_data)
+    def dict_to_class(cls, item_data: dict) -> "CompiledItem":
+        return cls(
+            id=item_data["id"],
+            name=item_data["name"],
+            pocket=ItemPockets(item_data["pocket"]),
+            price=item_data["price"],
+            item_type=ItemSubCategories(item_data["item_type"]),
+        )

@@ -2,6 +2,10 @@
     "messages": {
         "yes" : "Sí",
         "no": "No",
+        "config": {
+            "global_initialized": "Configuración global inicializada.",
+            "game_initialized": "Configuración del juego inicializada para: {game_name}"
+        },
         "decryption_complete": "¡Lectura y desencriptación del archivo completada!",
         "banks": {
             "decryption_start": "INICIANDO LECTURA: Tabla principal de bancos en {offset}",
@@ -25,7 +29,7 @@
         },
         "items": {
             "table_header": "ID{s1}NOMBRE{s2}BOLSILLO{s3}TIPO{s4}PRECIO{s5}RANDOM",
-            "item_entry": "ID #{id} - {name} | Bolsillo: {pocket} ({pocket_id}) | Tipo: {item_type} | Precio: ${price} | Randomizable: {safe}"
+            "item_entry": "ID #{id} - {name} | Bolsillo: {pocket} ({pocket_id}) | Tipo: {item_type} | Precio: ${price}"
         }
     },
     "events": {

@@ -1,3 +1,5 @@
+
+import redis.asyncio as redis
 import copy
 import asyncio
 import json
@@ -21,7 +23,7 @@ from services.gba.pokemon.stats_service import StatsService
 from games.gba.gba_game import GBAGame
 class GBAPokemonGame(GBAGame):
     def __init__(
-        _self,
+        self,
         game: AvailableGames,
         file_service: FileService,
         log_service: LogService,
@@ -33,7 +35,8 @@ class GBAPokemonGame(GBAGame):
         stats_service: StatsService,
         events_service: EventsService,
         items_service: ItemService,
-        wild_service: WildService
+        wild_service: WildService,
+        redis_client: redis.Redis | None = None,
     ):
         super().__init__(
             game=game,
@@ -42,80 +45,104 @@ class GBAPokemonGame(GBAGame):
             memory_service=memory_service,
             config_service=config_service,
             translations_service=translations_service,
+            redis_client=redis_client,
         )
-        _self.bank_service = bank_service
-        _self.keyboard_service = keyboard_service
-        _self.stats_service = stats_service
-        _self.items_service= items_service
-        _self.wild_service = wild_service
-        _self.events_service = events_service
+        self.bank_service = bank_service
+        self.keyboard_service = keyboard_service
+        self.stats_service = stats_service
+        self.items_service= items_service
+        self.wild_service = wild_service
+        self.events_service = events_service
 
     # Public Methods
-    async def process_game(_self) -> None:
-        _self.log_service.info(
-            _self.translations_service.translate(
+    async def process_game(self) -> None:
+        self.log_service.info(
+            self.translations_service.translate(
                 "messages.games.starting_modification",
-                game_name=_self._get("GAME_NAME"),
+                game_name=self._get("GAME_NAME"),
             )
         )
+        try:
+            cache_hit = await self.__load_from_cache()
+            if not cache_hit:
+                await asyncio.gather(
+                    asyncio.to_thread(self.bank_service.allocate_banks, self.memory_service.game_file),
+                    asyncio.to_thread(self.stats_service.get_all_species_data, self.memory_service.game_file),
+                    asyncio.to_thread(self.items_service.get_all_items, self.memory_service.game_file),
+                )
 
-        bank_cont = f"game:{_self.game.name}:banks"
-        stats_cont = f"game:{_self.game.name}:stats"
-        items_cont = f"game:{_self.game.name}:items"
+            await self.__process_banks_modifications(self.memory_service.game_file)
 
-        banks_json, stats_json, items_json = await _self.client.mget( [bank_cont, stats_cont, items_cont])
-        if not all([banks_json, stats_json, items_json]):
-            await asyncio.gather(
-                _self.bank_service.allocate_banks(_self.memory_service.game_file),
-                _self.stats_service.get_all_species_data(_self.memory_service.game_file),
-                _self.items_service.get_all_items(_self.memory_service.game_file)
-            )
+            if not cache_hit:
+                await self.__save_to_cache()
+        finally:
+            if self.client is not None:
+                await self.client.aclose()
 
-            async with _self.client.pipeline() as pipe:
-                pipe.set(stats_cont, json.dumps([asdict(stat) for stat in _self.stats_service.stats]), ex=3600)
-                pipe.set(items_cont, json.dumps([asdict(item) for item in _self.items_service.items]), ex=3600)
-                await pipe.execute()
-        else:
-            _self.bank_service.load_from_json(banks_json)
-            _self.stats_service.load_from_json(stats_json)
-            _self.items_service.load_from_json(items_json)
-
-        await _self.__process_banks_modifications(_self.memory_service.game_file)
-        if not banks_json:
-            await _self.client.set(
-                bank_cont,
-                json.dumps([asdict(bank) for bank in _self.bank_service.banks]),
-                ex=3600
-            )
-
-        await _self.__configure_spanish_keyboard()
-        _self.file_service.save_new_game_file(
-            _self.memory_service.game_file,
-            _self._get("MODIFIED_GAME"),
+        await self.__configure_spanish_keyboard()
+        self.file_service.save_new_game_file(
+            self.memory_service.game_file,
+            self._get("MODIFIED_GAME"),
         )
     # End Public Methods
 
     # Protected Methods
-    def _apply_game_specific_changes() -> None:
+    def _apply_game_specific_changes(self) -> None:
         pass
     # End Protected Methods
 
     # Private Methods
-    async def __process_banks_modifications(_self, game_file: bytearray):
-        
-        species_by_id = {pokemon.id: pokemon for pokemon in _self.stats_service.stats}
-        wild_events = _self.wild_service.get_wild_data(game_file, _self.stats_service.stats)
+    async def __load_from_cache(self) -> bool:
+        """Attempt to hydrate banks, stats, and items from Redis; return False if unavailable or missed."""
+        if self.client is None:
+            return False
 
-        for bank in _self.bank_service.banks:
-            _self.log_service.info(
-                    _self.translations_service.translate(
+        keys = [
+            f"game:{self.game.name}:banks",
+            f"game:{self.game.name}:stats",
+            f"game:{self.game.name}:items",
+        ]
+        try:
+            banks_json, stats_json, items_json = await self.client.mget(keys)
+            if not all([banks_json, stats_json, items_json]):
+                return False
+
+            self.bank_service.load_from_json(banks_json)
+            self.stats_service.load_from_json(stats_json)
+            self.items_service.load_from_json(items_json)
+            return True
+        except redis.RedisError:
+            return False
+
+    async def __save_to_cache(self) -> None:
+        """Persist compiled banks, stats, and items into Redis if available."""
+        if self.client is None:
+            return
+
+        try:
+            async with self.client.pipeline() as pipe:
+                pipe.set(f"game:{self.game.name}:banks", json.dumps([asdict(bank) for bank in self.bank_service.banks]), ex=3600)
+                pipe.set(f"game:{self.game.name}:stats", json.dumps([asdict(stat) for stat in self.stats_service.stats]), ex=3600)
+                pipe.set(f"game:{self.game.name}:items", json.dumps([asdict(item) for item in self.items_service.items.values()]), ex=3600)
+                await pipe.execute()
+        except redis.RedisError:
+            pass
+
+    async def __process_banks_modifications(self, game_file: bytearray):
+        
+        species_by_id = {pokemon.id: pokemon for pokemon in self.stats_service.stats}
+        wild_events = self.wild_service.get_wild_data(game_file, self.stats_service.stats)
+
+        for bank in self.bank_service.banks:
+            self.log_service.info(
+                    self.translations_service.translate(
                         "messages.banks.bank_entry",
                         bank_id=f"{bank.bank_id:2d}",
                         offset=hex(bank.header_offset),
                     ), False)
             for map in bank.maps:
-                _self.log_service.info(
-                    _self.translations_service.translate(
+                self.log_service.info(
+                    self.translations_service.translate(
                         "messages.banks.map_entry",
                         map_id=f"{map.map_id:2d}",
                         name=f"{map.name:<15s}",
@@ -123,25 +150,25 @@ class GBAPokemonGame(GBAGame):
                         width=f"{map.width:3d}",
                         height=f"{map.height:3d}",
                     ), False)
-                _self.events_service.find_map_events(game_file, map)
+                self.events_service.find_map_events(game_file, map)
                 
                 for event in map.events:
-                    _self.events_service.process_event_by_id(event,[
+                    self.events_service.process_event_by_id(event,[
                         [
-                            _self._get("POKEBALL_SPRITE_ID"),
-                            lambda ev: _self.items_service.execute_item_function(
+                            self._get("POKEBALL_SPRITE_ID"),
+                            lambda ev: self.items_service.execute_item_function(
                                 game_file,
                                 ev,
                                 lambda gf, ev : (
-                                    (new_script_bytes := _self.items_service.randomize_pokeballs(gf)) and
-                                    _self.events_service.change_event_item_with_random(gf,ev, new_script_bytes) 
+                                    (new_script_bytes := self.items_service.randomize_pokeballs(gf)) and
+                                    self.events_service.change_event_item_with_random(gf,ev, new_script_bytes) 
                                 )
                             )
                         ]   
                     ] )
                     
                 for wild_table_offset in wild_events.offsets:
-                    selected_species = _self.wild_service.select_wild_species(
+                    selected_species = self.wild_service.select_wild_species(
                         bank=bank,
                         compiled_map=map,
                         wild_grass_slot_count=wild_events.events_count,
@@ -152,7 +179,7 @@ class GBAPokemonGame(GBAGame):
                     
                     if not selected_species:
                         continue
-                    _self.wild_service.randomize_wild_encounters(
+                    self.wild_service.randomize_wild_encounters(
                         bank=bank,
                         compiled_map=map,
                         wild_grass_slot_count=wild_events.events_count,
@@ -162,7 +189,7 @@ class GBAPokemonGame(GBAGame):
                         game_file=game_file,
                     )
                     
-    async def __configure_spanish_keyboard(_self) -> None:
+    async def __configure_spanish_keyboard(self) -> None:
         keyboard_layout = GameUIKeyboard(
             default=copy.deepcopy(GBA_POKEMON_NAMING_UPPER_KEYBOARD),
             lower=copy.deepcopy(GBA_POKEMON_NAMING_LOWER_KEYBOARD),
@@ -172,16 +199,16 @@ class GBAPokemonGame(GBAGame):
                 lower=GBA_POKEMON_NAMING_LOWER_LOGIC,
                 others=GBA_POKEMON_NAMING_OTHERS_LOGIC,
                 offsets=[
-                    _self._get("UPPER_KEYBOARD_CHARS_OFFSET"),
-                    _self._get("LOWER_KEYBOARD_CHARS_OFFSET"),
-                    _self._get("OTHERS_KEYBOARD_CHARS_OFFSET"),
+                    self._get("UPPER_KEYBOARD_CHARS_OFFSET"),
+                    self._get("LOWER_KEYBOARD_CHARS_OFFSET"),
+                    self._get("OTHERS_KEYBOARD_CHARS_OFFSET"),
                 ],
             ),
         )
-        await _self.keyboard_service.set_spanish_chars(
-            _self.memory_service.game_file,
-            _self.game,
+        await self.keyboard_service.set_spanish_chars(
+            self.memory_service.game_file,
+            self.game,
             keyboard_layout,
-            _self._get("DEFAULT_UI_KEYBOARD_SEPARATORS"),
+            self._get("DEFAULT_UI_KEYBOARD_SEPARATORS"),
         )
     # End Private Methods
