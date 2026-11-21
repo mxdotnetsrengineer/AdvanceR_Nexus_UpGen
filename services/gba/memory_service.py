@@ -5,12 +5,12 @@ from services.translations_service import TranslationsService
 class GBAMemoryService:
 
     def __init__(
-            _self,
+            self,
             translations_service: TranslationsService,
         ):
-            _self.game_file: bytearray | None = None
-            _self.free_space_offset: int = 0
-            _self.translator = translations_service
+            self.game_file: bytearray | None = None
+            self.free_space_offset: int = 0
+            self.translator = translations_service
     
     @staticmethod
     def pointer_to_offset(pointer: int | bytearray) -> int | None:
@@ -77,7 +77,7 @@ class GBAMemoryService:
         return struct.unpack_from(f"<{count}H", game_file, offset)
     
     def find_free_space_offset(
-        _self,
+        self,
         game_file: bytearray,
         size: int,
         start_offset: int | None = None,
@@ -87,7 +87,7 @@ class GBAMemoryService:
         if size <= 0:
             return None
 
-        search_start = start_offset if start_offset is not None else _self.free_space_offset
+        search_start = start_offset if start_offset is not None else self.free_space_offset
         if search_start < 0 or search_start >= len(game_file):
             return None
 

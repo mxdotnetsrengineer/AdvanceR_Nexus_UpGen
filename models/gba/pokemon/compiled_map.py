@@ -9,7 +9,7 @@ class CompiledMap:
     width:int
     height:int
     events_count:int
-    events: CompiledEvent[list] = field(default_factory=list)
+    events: list[CompiledEvent] = field(default_factory=list)
 
     @classmethod
     def dict_to_class(cls, map_data: dict) -> "CompiledMap":

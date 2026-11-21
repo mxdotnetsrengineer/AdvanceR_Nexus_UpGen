@@ -7,6 +7,10 @@
         },
         "stats": {
             "no_valid_offsets" : "No valid offsets were found for stats, names, or evolutions."
+        },
+        "config": {
+            "missing_global": "Shared global_config.json file not found.",
+            "unsupported_language": "Language not supported"
         }
     }
 }
