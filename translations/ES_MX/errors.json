@@ -5,6 +5,10 @@
         "game_not_found": "No se encontró el archivo del juego '{game_path}'. Asegúrate de ponerlo en esta carpeta.",
         "no_game_data": "Todavía no hay ningún juego cargado para guardar. Por favor ejecuta open_game().",
         "missing_output_path": "No se definió la ruta de salida 'MODIFIED_GAME' en la configuración.",
-        "no_game_loaded": "No hay ningún juego cargado en memoria. Por favor ejecuta open_game()."
+        "game_config_not_found": "No se encontró la configuración del juego en: {game_path}",
+        "empty_game_file": "El archivo de juego proporcionado está vacío.",
+        "rom_size_exceeded": "El tamaño del archivo ({size} bytes) supera el máximo permitido ({max_size} bytes).",
+        "internal_server_error": "Ocurrió un error interno inesperado en el servidor.",
+        "invalid_game_filename": "Nombre de archivo inválido '{provided_name}'. Debes subir el archivo: '{expected_name}'."
     }
 }

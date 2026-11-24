@@ -50,6 +50,6 @@ class ItemSubCategories(IntEnum):
     NONE = 0xFF               # Poké Balls & passive Key Items (no subcategory needed)
 
 class BankMethods(IntEnum):
-    RANDOMIZE_POKEBALLS_ITEMS = 1,
-    RANDOMIZE_WILD_POKEMONS = 2,
+    RANDOMIZE_POKEBALLS_ITEMS = 1
+    RANDOMIZE_WILD_POKEMONS = 2
     ALL = 3

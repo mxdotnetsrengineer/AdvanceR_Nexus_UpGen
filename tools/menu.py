@@ -1,10 +1,9 @@
 import os
 import sys
-from pathlib import Path
 from enums.gba.games_enum import AvailableGames
 from enums.app_enums import AvailableLanguages
 from tools.user_selection import UserSelection
-from translations.app_translations import AppsTranslations
+from services.translations_service import TranslationsService
 
 
 class _ExitMenuException(Exception):
@@ -21,18 +20,14 @@ class ConsoleMenu:
         AvailableLanguages.ES_MX: "Español (MX)",
     }
 
-    def __init__(self, default_language: AvailableLanguages | str = AvailableLanguages.EN_US) -> None:
-        if isinstance(default_language, str):
-            self.language = (
-                AvailableLanguages[default_language]
-                if default_language in AvailableLanguages.__members__
-                else AvailableLanguages.EN_US
-            )
-        else:
-            self.language = default_language or AvailableLanguages.EN_US
-
-        locales_path = Path(__file__).resolve().parent.parent / "translations"
-        self.translator = AppsTranslations(locales_dir=locales_path, default_locale=self.language.name)
+    def __init__(
+        self,
+        translator: TranslationsService,
+        default_language: AvailableLanguages = AvailableLanguages.EN_US,
+    ) -> None:
+        self.translator = translator
+        self.language = default_language
+        self.translator.set_locale(self.language)
 
     # Public Methods
     def run(self) -> UserSelection | None:
@@ -131,7 +126,7 @@ class ConsoleMenu:
         self.translator.set_locale(self.language.name)
 
         selected_label = self.LANGUAGE_LABELS.get(self.language, self.language.name)
-        return t("menu.messages.language_updated", label=selected_label)
+        return t("menu.messages.language_updated", language=selected_label)
 
     def __select_execution_mode(self) -> str:
         t = self.translator.translate
