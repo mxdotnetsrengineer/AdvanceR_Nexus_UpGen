@@ -7,6 +7,7 @@ from decorators.app_decorators import when_enabled
 from services.config_service import ConfigService
 from services.log_service import LogService
 from services.translations_service import TranslationsService
+from services.error_service import ErrorService
 from services.gba.memory_service import GBAMemoryService
 
 class StatsService:
@@ -15,15 +16,15 @@ class StatsService:
         config_service: ConfigService,
         memory_service: GBAMemoryService,
         log_service: LogService,
-        translations_service: TranslationsService
-
-        
+        translations_service: TranslationsService,
+        error_service: ErrorService
     ):
         self.config = config_service
         self.memory = memory_service
         self.log = log_service
         self.stats: list[CompiledBaseStats] = []
         self.translator = translations_service
+        self.errors = error_service
 
         self.max_species = self.config.get("MAX_POKEMON_SPECIES")
         self.name_length = self.config.get("POKEMON_NAME_LENGTH")
@@ -33,7 +34,7 @@ class StatsService:
 
     # Public Methods
     @when_enabled("BASE_STATS", default=True)
-    async def get_all_species_data(self, game_file: bytearray) -> list[CompiledBaseStats]:
+    def get_all_species_data(self, game_file: bytearray) -> list[CompiledBaseStats]:
         """Read and compile base stats, names, and evolution stages for all Pokémon species."""
         game_size = len(game_file)
         stats_offset = self.config.get("POKEMON_STATS_OFFSET")
@@ -111,6 +112,7 @@ class StatsService:
                     type_2=stat.type_2, ability_1=stat.ability_1, ability_2=stat.ability_2, catch_rate=stat.catch_rate,
                 )
             )
+        return self.stats
 
     def load_from_json(self, stats_json: str) -> None:
         """Deserialize a JSON string into a list of PokemonStats instances."""
@@ -194,7 +196,6 @@ class StatsService:
             return []
 
         # Evolution entry struct (8 bytes): [method: u16, param: u16, target_species: u16, unused: u16]
-        target_species_field_offset = 4
         evolutions: list[tuple[int, bool]] = []
 
         u16_fields_per_entry = 4

@@ -5,6 +5,10 @@
         "game_not_found": "Please place your game '{game_path}' in this folder.",
         "no_game_data": "No game data to save. Call open_game() first.",
         "missing_output_path": "Missing 'MODIFIED_GAME' path in configuration.",
-        "no_game_loaded": "No game loaded. Call open_game() first."
+        "game_config_not_found": "Game configuration not found at: {game_path}",
+        "empty_game_file": "The provided game file is empty.",
+        "rom_size_exceeded": "The file size ({size} bytes) exceeds the maximum allowed ({max_size} bytes).",
+        "internal_server_error": "An unexpected internal server error occurred.",
+        "invalid_game_filename": "Invalid file name '{provided_name}'. You must upload the file: '{expected_name}'."
     }
 }

@@ -34,7 +34,7 @@
         "messages": {
             "exiting": "Saliendo de la aplicación...",
             "current_tag": " (Actual)",
-            "language_updated": "✔ Idioma actualizado a: {label}",
+            "language_updated": "✔ Idioma actualizado a: {language}",
             "invalid_option": "Opción inválida. Por favor intenta de nuevo."
         }
     }
