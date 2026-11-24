@@ -24,13 +24,6 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 * [🏗️ Architecture & Design Patterns](#%EF%B8%8F-architecture--design-patterns)
   * [System Layers](#system-layers)
   * [Design Patterns Used](#design-patterns-used)
-    * [1. Abstract Factory & Provider](#1-abstract-factory--factory-provider)
-    * [2. Template Method](#2-template-method)
-    * [3. Dependency Injection](#3-constructor-dependency-injection-di)
-    * [4. Data Transfer Object](#4-data-transfer-object)
-    * [5. Strategy / Declarative Configuration](#5-strategy--declarative-configuration-uikeyboardpatch)
-    * [6. Metaprogramming / Decorators](#6-custom-decorators--metaprogramming-when_enabled-keys_from_str)
-    * [7. Factory Method](#7-factory-method-deprecated)
 
 <h3 align="center">⚫ ⚫ ⚫ ⚫ ⚫ ⚫</h3>
 
@@ -154,7 +147,7 @@ The repository is organized by layers and platform domains so new consoles, game
 The system unifies global settings, game-specific binary layouts, and feature toggles at runtime via `init_global_config()` and `init_game_config()` (`settings.py`), automatically parsing hexadecimal strings (`0x...`) into integers:
 
 * **`config/global_config.json`:** Global behavior toggles (`RANDOMIZE_POKEBALLS_ITEMS`, `ADD_SPANISH_CHARS`, `RANDOMIZE_WILD_POKEMON`, `ONLY_DATABASE`, `CURRENT_LANGUAGE`, `LOG_TYPE`).
-* **`config/{console}/{series}/{game}_config.json`:** Title-specific pointer offsets, table sizes, and free-space boundaries. See the [FireRed Configuration Example](./readme/fire_red.md).
+* **`config/{console}/{series}/{game}_config.json`:** Title-specific pointer offsets, table sizes, and free-space boundaries. See the [FireRed Configuration Example](./readme/gba/pokemon/fire_red.md).
 * **`config/{console}/{series}/feature_flags.json`:** Optional granular pipeline toggles (`ALLOCATE_BANKS`, `ALLOCATE_MAPS`, `MAPS_EVENTS`).
 
 > 📖 For the full list of global keys and transient runtime state (`game_file`, `free_space_offset`), see the [Configuration Properties Reference](./readme/configuration.md).
