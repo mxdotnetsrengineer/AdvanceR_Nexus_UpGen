@@ -1,6 +1,31 @@
 # Changelog
 
 All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
+## [v1.4.0] - 2026-11-24
+
+### Added
+- **REST FastAPI Layer & Domain Facades**: Built the HTTP API application in `api/app.py` (`create_app`) with modular routers (`api/routers/items_router.py` exposing `POST /gba/pokemon/items` and `api/routers/config_router.py` exposing `PATCH /config/language`), Pydantic schemas (`api/schemas/`), request timing middleware (`api/middlewares/app_middlewares.py`), form/cookie input parsing (`api/dependencies/game_dependencies.py`), and `GameAPIInput` DTO (`models/game_api_input.py`).
+- **Facade Orchestration Pattern**: Introduced `BaseGameFacade` (`facades/base_facade.py`), `ItemsFacade` (`facades/items_facade.py`), and `ConfigFacade` (`facades/config_facade.py`) to encapsulate ROM validation, filename verification, size limits, thread-offloaded binary extraction (`asyncio.to_thread`), and HTTP-only `app_language` cookie configuration.
+- **Centralized Domain Exception Handling**: Created custom domain exceptions (`DomainException`, `DomainValidationError`, `ResourceNotFoundError`, `RomPreconditionError`) in `api/exceptions/domain_exceptions.py`, HTTP status translators in `api/exceptions/exception_handlers.py`, and `ErrorService` (`services/error_service.py`) to decouple error logging from exception raising.
+- **API & Web Dependencies**: Added `fastapi`, `uvicorn`, and `python-multipart` to `requirements.txt`.
+
+### Changed
+- **gRPC Servicer Refactored to Use `ItemsFacade`**: Moved gRPC assets into `grpc_files/` (`protos/`, `generated/`, `servicers/items_servicer.py`, `server.crt`, `server.key`) and updated `ItemsGrpcServicer` and `main.py` to delegate item extraction through `ItemsFacade` with configurable SSL and Redis connection parameters (`GRPC_CERT_PATH`, `GRPC_KEY_PATH`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `LANGUAGE_COOKIE_MAX_AGE`).
+
+## [v1.3.2] - 2026-11-23
+
+### Added
+- **Hierarchical Game Configuration Inheritance (`BASE_CONFIG`)**: Replaced global mutable `settings.py` state with isolated `ConfigService.load_global()` and `ConfigService.load_for_game()` loaders (`services/config_service.py`) supporting recursive `BASE_CONFIG` inheritance (e.g., `emerald_kaizo` inheriting from `emerald`, `radical_red` from `fire_red`), circular dependency detection, and `Path`-based relative resolution in `FileService`.
+- **In-Memory ROM Loading & Filename Validation**: Updated `GamesProvider.create()` (`games/core/games_provider.py`) and `GBAPokemonCoreFactory` (`games/core/gba_pokemon_core.py`) to accept raw `bytearray` game files directly in memory (`game_file`) and validate uploaded filenames against `ORIGINAL_GAME`.
+- **Consolidated `TranslationsService`**: Merged `AppsTranslations` into `services/translations_service.py` with direct `Enum`/string locale normalization and removed the standalone `translations/app_translations.py` wrapper.
+
+### Changed
+- **Synchronous Service Pipeline & Standard `self` Conventions**: Converted `BankService.allocate_banks`, `ItemService.get_all_items`, `StatsService.get_all_species_data`, and `GBAKeyboardService.set_spanish_chars` into synchronous methods (executed via `asyncio.to_thread` in `GBAPokemonGame`), standardized `_self` parameters to `self` across all services and game classes, and decoupled `LogService.error()` so it records logs without raising exceptions.
+- **Redis Caching & Client Lifecycle Cleanup**: Refactored `GBAPokemonGame` (`games/gba/pokemon/gba_pokemon_game.py`) with `__load_from_cache` / `__save_to_cache` helpers, safe `aclose()` cleanup in a `finally` block, and dictionary-keyed item serialization (`dict[int, CompiledItem]`) in `ItemService`.
+
+### Fixed
+- **Enum Tuple & Deserialization Bugs**: Removed trailing commas in `BankMethods` (`enums/gba/pokemon/gba_pokemon_enums.py`), fixed `CompiledMap.events` type annotation (`list[CompiledEvent]`), and updated `CompiledItem.dict_to_class` to reconstruct `ItemPockets` and `ItemSubCategories` enums properly.
+
 
 ## [v1.3.1] - 2026-11-20
 

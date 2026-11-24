@@ -4,48 +4,48 @@ from services.config_service import ConfigService
 
 class DifficultyService:
     def __init__(
-        _self,
+        self,
         config_service: ConfigService,
     ):
-        _self.config = config_service
-        _self._cached_difficulty_pools: list[tuple[int, list[CompiledBaseStats]]] | None = None
-        _self.current_difficulty = _self.config.get("CURRENT_DIFFICULTY")
+        self.config = config_service
+        self._cached_difficulty_pools: list[tuple[int, list[CompiledBaseStats]]] | None = None
+        self.current_difficulty = self.config.get("CURRENT_DIFFICULTY")
         
     # Public Methods
-    def get_difficulty_pools(_self, wild_grass_slot_count: int,wild_candidates: list[CompiledBaseStats]):
+    def get_difficulty_pools(self, wild_grass_slot_count: int,wild_candidates: list[CompiledBaseStats]):
         """Return cached difficulty pools or a single fallback tier containing all wild candidates."""
-        difficulty_groups = _self.current_difficulty["groups"]
+        difficulty_groups = self.current_difficulty["groups"]
         
         # if not difficulty, random
         if not difficulty_groups or not isinstance(difficulty_groups, list):
             return [random.choice(wild_candidates) for _ in range(wild_grass_slot_count)]
 
-        if _self._cached_difficulty_pools is None:
-            _self._cached_difficulty_pools = _self.__build_difficulty_pools(
+        if self._cached_difficulty_pools is None:
+            self._cached_difficulty_pools = self.__build_difficulty_pools(
                 difficulty_groups,
                 wild_candidates,
                 min_pool_size=wild_grass_slot_count,
             )
 
-        return _self._cached_difficulty_pools
+        return self._cached_difficulty_pools
 
-    def get_chosen_pool(_self, average_level: float) -> list[CompiledBaseStats]:
+    def get_chosen_pool(self, average_level: float) -> list[CompiledBaseStats]:
         """Return the candidate pool matching the given `average_level`."""
-        if not _self._cached_difficulty_pools:
+        if not self._cached_difficulty_pools:
             return []
 
-        for group_max_level, pool_species in _self._cached_difficulty_pools:
+        for group_max_level, pool_species in self._cached_difficulty_pools:
             if average_level <= group_max_level:
                 return pool_species
 
-        return _self._cached_difficulty_pools[-1][1]
+        return self._cached_difficulty_pools[-1][1]
 
-    def calculate_adjusted_level(_self, original_level: int) -> int:
+    def calculate_adjusted_level(self, original_level: int) -> int:
         """Adjust an encounter or trainer Pokémon level according to configured difficulty rules."""
         max_pokemon_level = 100
-        level_mode = _self.current_difficulty["level_mode"]
-        quantity = _self.current_difficulty["level_quantity"]
-        min_allowed = _self.current_difficulty["min_level"]
+        level_mode = self.current_difficulty["level_mode"]
+        quantity = self.current_difficulty["level_quantity"]
+        min_allowed = self.current_difficulty["min_level"]
 
         match level_mode:
             case "ADD":
@@ -61,7 +61,7 @@ class DifficultyService:
 
     # Private Methods
     def __build_difficulty_pools(
-        _self,
+        self,
         difficulty_groups: list[dict],
         wild_candidates: list[CompiledBaseStats],
         min_pool_size: int = 12,

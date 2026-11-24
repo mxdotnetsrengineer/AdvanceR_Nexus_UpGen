@@ -31,3 +31,7 @@
 ### 7. Factory Method (Deprecated)
 * **Location:** `deprecated/factory_example.py`
 * **Purpose:** Preserved as an architectural reference illustrating the initial single-factory implementation (`CurrentGameFactory`) prior to migrating to Abstract Factory.
+
+### 8. Facade Pattern
+* **Location:** `facades/base_facade.py`, `facades/items_facade.py`, `facades/config_facade.py`
+* **Purpose:** Provides a unified entry point for transport layers (FastAPI routers and gRPC servicers) to validate uploaded ROM files, check file size/name constraints, resolve isolated game configurations via `GamesProvider`, and execute synchronous binary parsers off the event loop (`asyncio.to_thread`).

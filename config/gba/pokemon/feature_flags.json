@@ -2,6 +2,6 @@
     "ALLOCATE_BANKS" : true,
     "ALLOCATE_MAPS" : true,
     "MAPS_EVENTS" : true,
-    "BASE_STATS" : false,
-    "WILD_EVENTS" : false
+    "BASE_STATS" : true,
+    "WILD_EVENTS" : true
 }

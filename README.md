@@ -3,6 +3,7 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 
 # 🎮 AdvanceR Nexus UpGen
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=204769)
+![FastAPI](https://img.shields.io/badge/FastAPI-3670A0?style=for-the-badge&logo=fastapi&logoColor=204769)
 ![Redis](https://img.shields.io/badge/Redis-3670A0?style=for-the-badge&logo=redis&logoColor=204769)
 ![gRPC](https://img.shields.io/badge/powered_by-gRPC-204769?labelColor=3670A0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-204769.svg?labelColor=3670A0)](https://opensource.org/licenses/MIT)
@@ -20,7 +21,7 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
     * [3.2 Adding a New Game](#32-adding-a-new-game)
 * [📁 Project Structure](#-project-structure)
 * [⚙️ Configuration Properties](#%EF%B8%8F-configuration-properties-config)
-* [⚡ gRPC & Redis Caching](#-grpc--redis-caching)
+* [⚡ APIs (FastAPI & gRPC) & Redis Caching](#-apis-fastapi--grpc--redis-caching)
 * [🏗️ Architecture & Design Patterns](#%EF%B8%8F-architecture--design-patterns)
   * [System Layers](#system-layers)
   * [Design Patterns Used](#design-patterns-used)
@@ -36,8 +37,9 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 * **Internationalization (`TranslationsService`):** Loads and flattens locale-specific JSON files (`ES_MX`, `EN_US`) for instant lookups.
 * **Filterable Logging & Exception System (`LogService`):** Controls console output channels (`NONE`, `INFO`, `WARNING`, `ERROR`, `ERROR_AND_WARNING`, `ALL`) and raises dynamically mapped exceptions based on error keys.
 * **Interactive Multi-Language Console Menu (`ConsoleMenu`):** Provides a responsive CLI interface (`tools/menu.py`) with real-time language switching (`EN_US` / `ES_MX`), screen clearing, and hotkey navigation (`ESC` to exit, `Backspace` / `0` to go back across steps).
-* **Redis Binary Data Caching (`BaseGame` & `{Console}{Series}Game`):** Uses `redis.asyncio` to serialize and cache compiled map banks, species stats, and item tables for 1 hour (`ex=3600`), avoiding redundant files scans on consecutive runs.
-* **Secure Async gRPC Server & Client (`grcp/`):** Exposes parsed game data (such as `GetAllItems` in `ItemsGrpcServicer`) over TLS (`grpc.aio.server`) using Protocol Buffers, supporting both server-loaded game and custom client-uploaded game files.
+* **Redis Binary Data Caching (`BaseGame` & `{Console}{Series}Game`):** Uses `redis.asyncio` to serialize and cache compiled map banks, species stats, and item tables for 1 hour (`ex=3600`), avoiding redundant file scans on consecutive runs.
+* **REST FastAPI Layer & Domain Facades (`api/` & `facades/`):** Exposes HTTP endpoints (`POST /gba/pokemon/items`, `PATCH /config/language`) backed by domain facades (`ItemsFacade`, `ConfigFacade`), in-memory ROM validation, `asyncio.to_thread` offloading, HTTP-only `app_language` cookies, request-timing middleware, and centralized HTTP exception handlers.
+* **Secure Async gRPC Server & Client (`grpc_files/`):** Exposes parsed game data (`GetAllItems` in `ItemsGrpcServicer`) over TLS (`grpc.aio.server`) using Protocol Buffers, delegating execution through `ItemsFacade` for both server-loaded and client-uploaded game files.
 
 ## 🎯 Supported Games
 
@@ -45,8 +47,8 @@ Currently, the engine supports the following **Game Boy Advance (Gen III)** titl
 
 | Platform | Game Title | Version / Base | Status | Supported Features | Extended Features |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer, gRPC Services | BST-Scaled Wild Randomizer |
-| **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer, gRPC Services | BST-Scaled Wild Randomizer |
+| **GBA** | **Pokémon FireRed** | USA (v1.0 / v1.1) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer, FastAPI & gRPC Services | BST-Scaled Wild Randomizer |
+| **GBA** | **Pokémon Radical Red** | v4.1 (FireRed Base) | ✅ Ready | Item Randomizer, Spanish Keyboard Patch, Wild Pokemon Randomizer, FastAPI & gRPC Services | BST-Scaled Wild Randomizer |
 | **GBA** | **Pokémon Emerald** | USA | ✅ Ready | Item Randomizer, Spanish Keyboard Patch | — |
 | **GBA** | **Pokémon Emerald Kaizo** | Emerald USA Base | ✅ Ready | Item Randomizer, Spanish Keyboard Patch | — |
 
@@ -112,29 +114,18 @@ Adding support for a new title only requires updating a few files without touchi
 
 ## 📁 Project Structure
 
-The repository is organized by layers and platform domains so new consoles, games, and features can scale independently:
+The repository is organized by architectural layers and platform domains so new consoles, games, and transport layers can scale independently:
 
-* **`config/`** — Stores declarative JSON configurations split between global runtime flags (`global_config.json`) and console/game specific binary layouts (`config/{console}/{series}/`), allowing new titles to be supported without modifying core logic.
-* **`enums/`** — Centralizes strongly typed enumerations for supported titles, languages, logging channels, and dynamically generated keyboard index mappings.
-* **`decorators/`** — Contains reusable Python decorators (`app_decorators.py`) to toggle features via config flags (`@when_enabled`, `@skip_when_enabled`, `@when_any_enabled`) and generate enums from strings (`@keys_from_str`).
-* **`games/`** — Holds the game classes and the factories that build them:
-  * **`base_game.py` (`BaseGame`):** Base abstract class that defines the main structure for any game, regardless of the console.
-  * **`core/` (`GamesProvider`, `GamesCore`, `{Console}{Series}CoreFactory`):** Uses the **Abstract Factory** pattern to set up the right services, load the game file into memory, and create the selected game.
-  * **`{console}/` (`{Console}Game`, `{Console}{Series}Game`, `FireRedGame`, `EmeraldGame`):** Uses the **Template Method** pattern to share common games logic while keeping game specific changes separate.
-* **`deprecated/`** — Preserves removed implementations (such as `factory_example.py`) as architectural reference examples without affecting active runtime paths.
-* **`helpers/`** — Holds static reference tables (such as Gen III byte to character mappings), original keyboard matrices, and internal exception-type lookup dictionaries.
-* **`models/`** — Defines lightweight `@dataclass` Data Transfer Objects (DTOs) that represent parsed map banks, map headers, overworld events, and declarative keyboard update payloads.
-* **`translations/`** — Stores language specific JSON files (`EN_US/`, `ES_MX/`) used by `TranslationsService` to keep user facing text separate from the main logic.
-* **`services/`** — The main logic of the app, split between shared utilities and binary handlers for each console:
-  * **`config_service.py` (`ConfigService`):** Provides a centralized, clean interface for querying merged runtime configuration values across the application.
-  * **`file_service.py` (`FileService`):** Handles safe binary I/O operations for loading clean game files into memory and writing customized outputs to disk.
-  * **`log_service.py` (`LogService`):** Filters console logs by level (`INFO`, `WARNING`, `ERROR`, etc.), saves runtime history, and raises mapped exceptions when errors happen.
-  * **`translations_service.py` (`TranslationsService`):** Loads, merges, and flattens locale JSON files for instant multi language string resolution.
-  * **`{console}/memory_service.py` (`{Console}MemoryService`):** Translates console memory pointers into raw file offsets and tracks available free space for safe binary injection.
-  * **`gba/pokemon/` (Domain Services):** gba pokemon series specific binary handlers. See the [GBA Pokémon Services Reference](./readme/gba/pokemon/gba_pokemon_services.md) for a detailed breakdown of each service.
-* **`grcp/`** — Contains Protocol Buffer definitions (`protos/items.proto`), PowerShell compilation scripts (`compile_protos.ps1`), generated bindings (`generated/`), TLS certificates (`server.crt`, `server.key`), and async gRPC servicers (`servicers/items_servicer.py`).
-* **`tools/`** — Interactive CLI utilities (`menu.py`, `user_selection.py`) powered by `AppsTranslations` (`translations/app_translations.py`) for multi-language terminal navigation.
-* **Root Files (`main.py`, `settings.py`)** — `settings.py` loads the JSON configs (including optional `feature_flags.json`) and converts hex strings into integers at startup, while `main.py` acts as the entry point that calls `GamesProvider` to build and run the selected game.
+* **`api/`** — RESTful FastAPI layer (`app.py`), domain routers (`items_router.py`, `config_router.py`), Pydantic schemas, form/cookie dependencies, timing middleware, and HTTP exception translators.
+* **`facades/`** — Application orchestration layer (`BaseGameFacade`, `ItemsFacade`, `ConfigFacade`) that encapsulates ROM validation, config resolution, thread offloading (`asyncio.to_thread`), and cookie metadata.
+* **`grpc_files/`** — Protocol Buffer contracts (`protos/items.proto`), compiled bindings (`generated/`), TLS credentials (`server.crt`, `server.key`), and async gRPC servicers (`servicers/items_servicer.py`).
+* **`games/`** — Abstract Factory providers (`GamesProvider`, `{Console}{Series}CoreFactory`) and Template Method game classes (`BaseGame`, `GBAPokemonGame`, `FireRedGame`, `EmeraldGame`).
+* **`services/`** — Core infrastructure (`ConfigService`, `FileService`, `LogService`, `ErrorService`, `TranslationsService`) and console/series binary parsers (`GBAMemoryService`, `BankService`, `EventsService`, `ItemService`, `StatsService`, `WildService`, `GBAKeyboardService`).
+* **`config/` & `translations/`** — Declarative JSON game layouts (with recursive `BASE_CONFIG` inheritance), feature flags, and multi-language locale dictionaries (`EN_US`, `ES_MX`).
+* **`models/`, `enums/` & `decorators/`** — Strongly typed `@dataclass` DTOs, domain enumerations, and feature-flag decorators (`@when_enabled`, `@skip_when_enabled`).
+* **`tools/` & `main.py`** — Interactive multi-language CLI (`ConsoleMenu`) and application entry point routing between the Randomizer, gRPC server, and gRPC test clients.
+
+> 📖 For a complete directory-by-directory and file-level breakdown, see the [Project Structure Reference](./readme/project_structure.md).
 
 <h3 align="center">
   ⚫ ⚫ ⚫
@@ -144,9 +135,9 @@ The repository is organized by layers and platform domains so new consoles, game
 
 ## ⚙️ Configuration Properties (`config/`)
 
-The system unifies global settings, game-specific binary layouts, and feature toggles at runtime via `init_global_config()` and `init_game_config()` (`settings.py`), automatically parsing hexadecimal strings (`0x...`) into integers:
+The system unifies global settings, recursive `BASE_CONFIG` game hierarchies, difficulty profiles, and feature toggles at runtime via `ConfigService.load_global()` and `ConfigService.load_for_game()`, automatically parsing hexadecimal strings (`0x...`) into integers:
 
-* **`config/global_config.json`:** Global behavior toggles (`RANDOMIZE_POKEBALLS_ITEMS`, `ADD_SPANISH_CHARS`, `RANDOMIZE_WILD_POKEMON`, `ONLY_DATABASE`, `CURRENT_LANGUAGE`, `LOG_TYPE`).
+* **`config/global_config.json`:** Global behavior toggles (`RANDOMIZE_POKEBALLS_ITEMS`, `ADD_SPANISH_CHARS`, `RANDOMIZE_WILD_POKEMON`, `ONLY_DATABASE`, `CURRENT_LANGUAGE`, `LOG_TYPE`) plus infrastructure settings (`REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `LANGUAGE_COOKIE_MAX_AGE`).
 * **`config/{console}/{series}/{game}_config.json`:** Title-specific pointer offsets, table sizes, and free-space boundaries. See the [FireRed Configuration Example](./readme/gba/pokemon/fire_red.md).
 * **`config/{console}/{series}/feature_flags.json`:** Optional granular pipeline toggles (`ALLOCATE_BANKS`, `ALLOCATE_MAPS`, `MAPS_EVENTS`).
 
@@ -158,14 +149,15 @@ The system unifies global settings, game-specific binary layouts, and feature to
   ⚫ ⚫ ⚫
 </h3>
 
-## ⚡ gRPC & Redis Caching
+## ⚡ APIs (FastAPI & gRPC) & Redis Caching
 
-To support external clients (such as upcoming GUIs) and eliminate redundant binary scans across consecutive runs, **AdvanceR Nexus UpGen** includes a transport and caching layer:
+To support external clients (such as upcoming web or desktop GUIs) and eliminate redundant binary scans across consecutive runs, **AdvanceR Nexus UpGen** provides dual transport layers backed by shared domain facades and Redis caching:
 
-* **Secure Async gRPC (`grcp/`):** Exposes parsed binary structures (such as `GetAllItems` in `ItemsGrpcServicer`) over **HTTP/2 + TLS** (`grpc.aio.server`), supporting both server-loaded game files and dynamic client uploads.
+* **RESTful FastAPI Layer (`api/` & `facades/`):** Exposes HTTP/JSON endpoints (`POST /gba/pokemon/items`, `PATCH /config/language`) with form/cookie parsing (`app_language`), request-timing middleware (`X-Process-Time`), and centralized domain-to-HTTP exception handlers.
+* **Secure Async gRPC (`grpc_files/`):** Exposes parsed binary structures (`GetAllItems` in `ItemsGrpcServicer`) over **HTTP/2 + TLS** (`grpc.aio.server`), delegating execution through `ItemsFacade` for both server-loaded and client-uploaded game files.
 * **Redis Caching (`redis.asyncio`):** Serializes and caches compiled map banks, species stats, and item tables (`game:{GAME_NAME}:*`) with a **1-hour TTL (`ex=3600`)**, reconstructing typed `@dataclass` models via `load_from_json()`.
 
-> 📖 For Protobuf contracts, TLS setup, and cache deserialization details, see the [gRPC & Redis Architecture Reference](./readme/grpc_and_redis.md).
+> 📖 For REST endpoints, Protobuf contracts, TLS setup, and cache deserialization details, see the [APIs & Redis Architecture Reference](./readme/apis_redis.md).
 
 
 <h3 align="center">
@@ -182,14 +174,14 @@ When refactoring this codebase from procedural helper scripts into an extensible
 flowchart TD
     subgraph Presentation ["1. Entry & Transport Layer"]
         CLI["ConsoleMenu<br/>(tools/menu.py)"]
-        Client["gRPC Client / Future GUI"]
+        REST["FastAPI REST API<br/>(api/routers/)"]
+        GRPC["gRPC Server<br/>(grpc_files/servicers/)"]
     end
 
-    subgraph Core ["2. Orchestration & Factory Layer"]
-        Main["main.py"]
-        Config["settings.py<br/>(Global & Game Config)"]
+    subgraph Orchestration ["2. Facades & Factory Layer"]
+        Facades["Domain Facades<br/>(ItemsFacade / ConfigFacade)"]
+        Config["ConfigService<br/>(Global & BASE_CONFIG)"]
         Provider["GamesProvider<br/>(Abstract Factory)"]
-        GRPC["ItemsGrpcServicer<br/>(grpc.aio + TLS)"]
     end
 
     subgraph Domain ["3. Game Lifecycle & Cache"]
@@ -203,11 +195,11 @@ flowchart TD
         GameFile[("Game File<br/>(bytearray)")]
     end
 
-    CLI --> Main
-    Client -->|HTTP/2 + Protobuf| GRPC
-    Main --> Config
-    Main --> Provider
-    GRPC --> Provider
+    CLI --> Provider
+    REST --> Facades
+    GRPC --> Facades
+    Facades --> Provider
+    Config --> Provider
     Provider --> Game
     Game <-->|mget / pipeline| Redis
     Game --> DomainSvc
@@ -235,5 +227,6 @@ flowchart TD
 * **Data Transfer Object (`models/`):** Represents parsed banks, maps, events, stats, and items as strongly typed `@dataclass` payloads.
 * **Strategy / Declarative Patching (`UIKeyboardPatch`):** Drives keyboard layout transformations from declarative data structures rather than hardcoded indices.
 * **Custom Decorators & Metaprogramming (`decorators/`):** Controls pipeline steps via config flags (`@when_enabled`, `@skip_when_enabled`) and generates `IntEnum` definitions dynamically (`@keys_from_str`).
+* **Facade (`facades/`):** Simplifies ROM validation, in-memory loading, thread offloading, and configuration responses behind clean interfaces (`ItemsFacade`, `ConfigFacade`) shared by both FastAPI and gRPC
 
 > 📖 For detailed locations, rationale, and architectural trade-offs for each pattern, see the [Design Patterns & Architecture Deep Dive](./readme/architecture.md).
