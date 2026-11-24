@@ -1,10 +1,16 @@
 {
-  "USE_FEATURE_FLAGS" : false,
+  "USE_FEATURE_FLAGS" : true,
   "RANDOMIZE_POKEBALLS_ITEMS": true,
   "RANDOMIZE_WILD_POKEMON": true,
   "INCLUDE_MEGA_EVOLUTIONS": false,
   "ADD_SPANISH_CHARS": true,
   "ONLY_DATABASE": false,
-  "CURRENT_LANGUAGE": "ES_MX",
-  "LOG_TYPE" : "INFO"
+  "CURRENT_LANGUAGE": "EN_US",
+  "LOG_TYPE" : "INFO",
+  "GRPC_CERT_PATH": "grpc_files/server.crt",
+  "GRPC_KEY_PATH": "grpc_files/server.key",
+  "REDIS_HOST": "127.0.0.1",
+  "REDIS_PORT": 6379,
+  "REDIS_DB": 0,
+  "LANGUAGE_COOKIE_MAX_AGE": 604800
 }
