@@ -1,5 +1,5 @@
 from typing import Any, NoReturn
-from api.exceptions.domain_exceptions import (
+from exceptions.domain_exceptions import (
     DomainException,
     DomainValidationError,
     ResourceNotFoundError,

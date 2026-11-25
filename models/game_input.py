@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class GameAPIInput:
+class GameInput:
     game_id: int | None = None
     raw_file: bytes | None = None
     filename: str | None = None
