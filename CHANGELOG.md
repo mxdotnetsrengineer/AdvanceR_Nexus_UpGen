@@ -1,6 +1,19 @@
 # Changelog
 
 All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
+## [v2.0.0] - 2026-11-25
+
+### Added
+- **Automated Test Suite (`Pytest`)**: Implemented unit and integration test coverage under `tests/` (`tests/conftest.py`, `tests/unit/test_memory.py`, `tests/unit/test_facades.py`, `tests/integration/test_config_router.py`) validating GBA memory pointer resolution, Gen III string decoding, word-aligned free space scanning, facade ROM validation, and FastAPI `HttpOnly` language cookie configuration.
+- **Interactive CLI Test Runner**: Added option `4. Run Tests (Pytest)` in `ConsoleMenu` (`tools/menu.py`, `tools/user_selection.py`, `main.py`) with multi-language locale support (`EN_US` / `ES_MX`) to execute all tests, unit tests, integration tests, or coverage reports (`pytest-cov`) directly from the terminal.
+- **Standalone API & gRPC Client Examples**: Created executable client scripts under `examples/` (`examples/api/common.py`, `examples/api/items.py`, `examples/grpc/items.py`) demonstrating multipart/form-data HTTP requests and secure gRPC item extraction.
+- **Testing & HTTP Dependencies**: Added `pytest`, `pytest-asyncio`, `pytest-cov`, and `httpx` to `requirements.txt`.
+
+### Changed
+- **Unified `GameInput` DTO & Shared Exceptions**: Renamed `GameAPIInput` (`models/game_api_input.py`) to `GameInput` (`models/game_input.py`) and relocated domain exceptions and handlers from `api/exceptions/` to root `exceptions/` (`exceptions/domain_exceptions.py`, `exceptions/exception_handlers.py`) so both REST and gRPC layers share identical input models and error contracts.
+- **gRPC Server Modularization & `Uvicorn` Launcher**: Extracted gRPC server/client setup out of `main.py` into `grpc_files/grpc_server.py` (`run_grpc`, `test_grpc`), updated `ItemsGrpcServicer` to use `GameInput` and typed domain exceptions, and added `run_fastapi()` in `main.py` to launch the FastAPI server and automatically open the browser.
+- **Synchronous Spanish Keyboard Patching**: Converted `GBAPokemonGame.__configure_spanish_keyboard` (`games/gba/pokemon/gba_pokemon_game.py`) from `async` to synchronous to match `GBAKeyboardService.set_spanish_chars`.
+
 ## [v1.4.0] - 2026-11-24
 
 ### Added
