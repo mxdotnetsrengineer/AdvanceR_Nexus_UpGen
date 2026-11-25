@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.openapi.utils import get_openapi
 from enums.gba.games_enum import AvailableGames
-from api.exceptions.exception_handlers import register_exception_handlers
+from exceptions.exception_handlers import register_exception_handlers
 from api.routers.items_router import get_items_facade, router as items_router
 from api.routers.config_router import get_config_facade, router as config_router
 from services.log_service import LogService

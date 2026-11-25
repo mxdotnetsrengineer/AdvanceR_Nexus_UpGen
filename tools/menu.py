@@ -47,13 +47,14 @@ class ConsoleMenu:
                 print("=" * 46)
                 print(t("menu.options.start_app"))
                 print(t("menu.options.test_grpc"))
+                print(t("menu.options.fastapi_server"))
                 print(t("menu.options.change_language"))
                 print()
                 print(t("menu.hints.main"))
 
-                choice = self.__prompt_choice(t("menu.prompts.select_option"), ["1", "2", "3"], allow_back=False)
+                choice = self.__prompt_choice(t("menu.prompts.select_option"), ["1", "2", "3", "4"], allow_back=False)
 
-                if choice == "3":
+                if choice == "4":
                     try:
                         status_banner = self.__select_language()
                     except _GoBackException:
@@ -70,6 +71,10 @@ class ConsoleMenu:
                     if selection is not None:
                         self.__clear_screen()
                         return selection
+
+                elif choice == "3":
+                    self.__clear_screen()
+                    return UserSelection(action="fastapi_server", game=None, language=self.language)
 
         except _ExitMenuException:
             self.__clear_screen()
