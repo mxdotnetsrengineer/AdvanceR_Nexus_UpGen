@@ -48,13 +48,14 @@ class ConsoleMenu:
                 print(t("menu.options.start_app"))
                 print(t("menu.options.test_grpc"))
                 print(t("menu.options.fastapi_server"))
+                print(t("menu.options.run_tests"))
                 print(t("menu.options.change_language"))
                 print()
                 print(t("menu.hints.main"))
 
-                choice = self.__prompt_choice(t("menu.prompts.select_option"), ["1", "2", "3", "4"], allow_back=False)
+                choice = self.__prompt_choice(t("menu.prompts.select_option"), ["1", "2", "3", "4", "5" ], allow_back=False)
 
-                if choice == "4":
+                if choice == "5":
                     try:
                         status_banner = self.__select_language()
                     except _GoBackException:
@@ -75,6 +76,14 @@ class ConsoleMenu:
                 elif choice == "3":
                     self.__clear_screen()
                     return UserSelection(action="fastapi_server", game=None, language=self.language)
+
+                elif choice == "4":
+                    try:
+                        pytest_action = self.__select_pytest_mode()
+                        self.__clear_screen()
+                        return UserSelection(action=pytest_action, game=None, language=self.language)
+                    except _GoBackException:
+                        continue
 
         except _ExitMenuException:
             self.__clear_screen()
@@ -156,6 +165,26 @@ class ConsoleMenu:
 
         choice = self.__prompt_choice(t("menu.prompts.test_mode"), ["1", "2"], allow_back=True)
         return "grpc_test_loaded" if choice == "1" else "grpc_test_replace"
+
+    def __select_pytest_mode(self) -> str:
+        t = self.translator.translate
+        self.__clear_screen()
+        print(t("menu.headers.select_pytest_mode"))
+        print(t("menu.pytest_modes.all"))
+        print(t("menu.pytest_modes.unit"))
+        print(t("menu.pytest_modes.integration"))
+        print(t("menu.pytest_modes.coverage"))
+        print()
+        print(t("menu.hints.sub"))
+
+        choice = self.__prompt_choice(t("menu.prompts.pytest_mode"), ["1", "2", "3", "4"], allow_back=True)
+        mapping = {
+            "1": "pytest_all",
+            "2": "pytest_unit",
+            "3": "pytest_integration",
+            "4": "pytest_cov",
+        }
+        return mapping[choice]
 
     def __select_game(self) -> AvailableGames:
         t = self.translator.translate
