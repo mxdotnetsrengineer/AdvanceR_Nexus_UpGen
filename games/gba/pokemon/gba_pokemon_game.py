@@ -79,7 +79,7 @@ class GBAPokemonGame(GBAGame):
             if self.client is not None:
                 await self.client.aclose()
 
-        await self.__configure_spanish_keyboard()
+        self.__configure_spanish_keyboard()
         self.file_service.save_new_game_file(
             self.memory_service.game_file,
             self._get("MODIFIED_GAME"),
@@ -189,7 +189,7 @@ class GBAPokemonGame(GBAGame):
                         game_file=game_file,
                     )
                     
-    async def __configure_spanish_keyboard(self) -> None:
+    def __configure_spanish_keyboard(self) -> None:
         keyboard_layout = GameUIKeyboard(
             default=copy.deepcopy(GBA_POKEMON_NAMING_UPPER_KEYBOARD),
             lower=copy.deepcopy(GBA_POKEMON_NAMING_LOWER_KEYBOARD),
@@ -205,7 +205,7 @@ class GBAPokemonGame(GBAGame):
                 ],
             ),
         )
-        await self.keyboard_service.set_spanish_chars(
+        self.keyboard_service.set_spanish_chars(
             self.memory_service.game_file,
             self.game,
             keyboard_layout,
