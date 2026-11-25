@@ -40,6 +40,7 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 * **Redis Binary Data Caching (`BaseGame` & `{Console}{Series}Game`):** Uses `redis.asyncio` to serialize and cache compiled map banks, species stats, and item tables for 1 hour (`ex=3600`), avoiding redundant file scans on consecutive runs.
 * **REST FastAPI Layer & Domain Facades (`api/` & `facades/`):** Exposes HTTP endpoints (`POST /gba/pokemon/items`, `PATCH /config/language`) backed by domain facades (`ItemsFacade`, `ConfigFacade`), in-memory ROM validation, `asyncio.to_thread` offloading, HTTP-only `app_language` cookies, request-timing middleware, and centralized HTTP exception handlers.
 * **Secure Async gRPC Server & Client (`grpc_files/`):** Exposes parsed game data (`GetAllItems` in `ItemsGrpcServicer`) over TLS (`grpc.aio.server`) using Protocol Buffers, delegating execution through `ItemsFacade` for both server-loaded and client-uploaded game files.
+* **Automated Test Suite (`Pytest`):** Includes unit and integration tests under `tests/` (`test_memory.py`, `test_facades.py`, `test_config_router.py`) executable directly from `ConsoleMenu` (`4. Run Tests (Pytest)`) with optional `pytest-cov` coverage reporting.
 
 ## 🎯 Supported Games
 
@@ -87,7 +88,7 @@ Activate the virtual environment depending on your operating system:
 1. Place your clean target game file in the root directory.
 2. Install dependencies (`uv pip install -r requirements.txt`) and ensure your local Redis instance is running.
 3. Adjust your main toggles in `config/global_config.json` (and optionally enable `USE_FEATURE_FLAGS` to fine-tune specific pipeline steps in `config/{console}/{series}/feature_flags.json`).
-4. Run `python main.py` and use the interactive `ConsoleMenu` to switch languages, launch the Randomizer, start the secure gRPC server, or run the gRPC test client:
+4. Run `python main.py` and use the interactive `ConsoleMenu` to switch languages, launch the Randomizer, start the secure gRPC server, or start the FastAPI server, run the gRPC test client, or execute the Pytest suite::
 
 #### 3.1 Interactive Console Menu (`ConsoleMenu`)
 Running `python main.py` launches an interactive, multi-language terminal menu (`tools/menu.py`):
@@ -116,9 +117,11 @@ Adding support for a new title only requires updating a few files without touchi
 
 The repository is organized by architectural layers and platform domains so new consoles, games, and transport layers can scale independently:
 
-* **`api/`** — RESTful FastAPI layer (`app.py`), domain routers (`items_router.py`, `config_router.py`), Pydantic schemas, form/cookie dependencies, timing middleware, and HTTP exception translators.
+* **`api/`** — RESTful FastAPI layer (`app.py`), domain routers (`items_router.py`, `config_router.py`), Pydantic schemas, form/cookie dependencies, timing middleware, and HTTP exceptions.
 * **`facades/`** — Application orchestration layer (`BaseGameFacade`, `ItemsFacade`, `ConfigFacade`) that encapsulates ROM validation, config resolution, thread offloading (`asyncio.to_thread`), and cookie metadata.
 * **`grpc_files/`** — Protocol Buffer contracts (`protos/items.proto`), compiled bindings (`generated/`), TLS credentials (`server.crt`, `server.key`), and async gRPC servicers (`servicers/items_servicer.py`).
+* **`exceptions/`** — Shared domain exceptions (`DomainValidationError`, `ResourceNotFoundError`, `RomPreconditionError`) and FastAPI exception handlers used across both REST and gRPC transports.
+* **`tests/` & `examples/`** — Unit and integration test suites (`tests/unit/`, `tests/integration/`) alongside executable FastAPI and gRPC client scripts (`examples/api/`, `examples/grpc/`).
 * **`games/`** — Abstract Factory providers (`GamesProvider`, `{Console}{Series}CoreFactory`) and Template Method game classes (`BaseGame`, `GBAPokemonGame`, `FireRedGame`, `EmeraldGame`).
 * **`services/`** — Core infrastructure (`ConfigService`, `FileService`, `LogService`, `ErrorService`, `TranslationsService`) and console/series binary parsers (`GBAMemoryService`, `BankService`, `EventsService`, `ItemService`, `StatsService`, `WildService`, `GBAKeyboardService`).
 * **`config/` & `translations/`** — Declarative JSON game layouts (with recursive `BASE_CONFIG` inheritance), feature flags, and multi-language locale dictionaries (`EN_US`, `ES_MX`).
@@ -172,10 +175,11 @@ When refactoring this codebase from procedural helper scripts into an extensible
 
 ```mermaid
 flowchart TD
-    subgraph Presentation ["1. Entry & Transport Layer"]
+    subgraph Presentation ["1. Entry, Transport & Testing Layer"]
         CLI["ConsoleMenu<br/>(tools/menu.py)"]
         REST["FastAPI REST API<br/>(api/routers/)"]
         GRPC["gRPC Server<br/>(grpc_files/servicers/)"]
+        Tests["Pytest Suite<br/>(tests/)"]
     end
 
     subgraph Orchestration ["2. Facades & Factory Layer"]
@@ -198,6 +202,9 @@ flowchart TD
     CLI --> Provider
     REST --> Facades
     GRPC --> Facades
+    Tests --> REST
+    Tests --> Facades
+    Tests --> Memory
     Facades --> Provider
     Config --> Provider
     Provider --> Game
@@ -208,7 +215,7 @@ flowchart TD
 ```
 
 ### System Layers
-1. **Entry, CLI & Transport Layer (`main.py`, `tools/`, `grcp/`, `settings.py`):** Loads global and game-specific JSON configs (`init_global_config` / `init_game_config`), drives user interaction through `ConsoleMenu`, and exposes game services via TLS-secured `grpc.aio` endpoints or local execution.
+1. **Entry, CLI & Transport Layer (`main.py`, `tools/`, `api/`, `grcp_files/`, `settings.py`):** Loads global and game-specific JSON configs (`init_global_config` / `init_game_config`), drives user interaction through `ConsoleMenu`, and exposes game services via TLS-secured `grpc.aio` endpoints or local execution.
 2. **Core Factory & Domain Layer (`games/core/`, `games/`):** Uses `GamesProvider` and `{Console}{Series}CoreFactory` to assemble platform service families, while `BaseGame`, `{Console}Game`, and `{Console}{Series}Game` define the game execution lifecycle for concrete titles (`FireRedGame`, `EmeraldGame`).
 3. **Service Layer (`services/`):** Encapsulates all business logic and binary operations split by technical domain (`{Console}MemoryService`, `BankService`, `EventsService`, `ItemService`, `StatsService`, `{Console}KeyboardService`) alongside cross-cutting infrastructure services (`ConfigService`, `LogService`, `TranslationsService`, `FileService`).
 4. **Models & Data Layer (`models/`, `enums/`, `helpers/`):** Provides strongly typed data structures (`@dataclass`), enumerations, and hexadecimal lookup tables free of side effects.

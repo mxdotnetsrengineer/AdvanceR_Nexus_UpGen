@@ -9,7 +9,8 @@
             "start_app": "1. Iniciar App (Randomizer / Servidor gRPC)",
             "test_grpc": "2. Probar Cliente gRPC",
             "fastapi_server": "3. Iniciar Servidor Rest API",
-            "change_language": "4. Cambiar Idioma"
+            "run_tests": "4. Ejecutar Tests (Pytest)",
+            "change_language": "5. Cambiar Idioma"
         },
         "prompts": {
             "select_option": "Selecciona una opción",
@@ -23,6 +24,12 @@
             "select_mode": "--- Seleccionar Modo de Ejecución ---",
             "select_test_mode": "--- Seleccionar Modo de Prueba gRPC ---",
             "select_game": "--- Seleccionar Juego ---"
+        },
+        "pytest_modes": {
+            "all": "1. Todos los Tests (Unit e Integration)",
+            "unit": "2. Solo Unit Tests",
+            "integration": "3. Solo Integration Tests",
+            "coverage": "4. Coverage Report con Tests"
         },
         "modes": {
             "randomizer": "1. Generador y Randomizer",
