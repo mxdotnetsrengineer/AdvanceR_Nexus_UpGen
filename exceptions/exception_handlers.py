@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from api.exceptions.domain_exceptions import (
+from exceptions.domain_exceptions import (
     DomainValidationError,
     ResourceNotFoundError,
     RomPreconditionError,
