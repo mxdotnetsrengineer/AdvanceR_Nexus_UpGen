@@ -1,6 +1,6 @@
 from pathlib import Path
 from enums.gba.games_enum import AvailableGames
-from models.game_api_input import GameAPIInput
+from models.game_input import GameInput
 from services.error_service import ErrorService
 from services.config_service import ConfigService
 from games.base_game import BaseGame
@@ -17,7 +17,7 @@ class BaseGameFacade:
         self._errors = error_service
         self._default_game = default_game
 
-    def _resolve_game(self, game_input: GameAPIInput) -> BaseGame:
+    def _resolve_game(self, game_input: GameInput) -> BaseGame:
         uploaded_bytes: bytearray | None = None
 
         if game_input.raw_file is not None:
