@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from api.schemas.items_schema import CompiledItemResponse, GetAllItemsResponse
-from models.game_api_input import GameAPIInput
+from models.game_input import GameInput
 from api.dependencies.game_dependencies import parse_game_input
 from facades.items_facade import ItemsFacade
 
@@ -15,7 +15,7 @@ def get_items_facade() -> ItemsFacade:
 
 @router.post("", response_model=GetAllItemsResponse)
 async def get_all_items_gba(
-    game_input: GameAPIInput = Depends(parse_game_input),
+    game_input: GameInput = Depends(parse_game_input),
     items_facade: ItemsFacade = Depends(get_items_facade),
 ) -> GetAllItemsResponse:
     """Extract all compiled items from an uploaded GBA ROM or the configured server ROM."""

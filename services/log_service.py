@@ -1,6 +1,6 @@
 from enums.logs_enum import LogLevels
 from helpers.logs_helper import ALLOWED_OUTPUTS
-from api.exceptions.domain_exceptions import DomainValidationError
+from exceptions.domain_exceptions import DomainValidationError
 from services.translations_service import TranslationsService
 
 
