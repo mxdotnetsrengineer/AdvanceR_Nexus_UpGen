@@ -1,5 +1,6 @@
 import asyncio
 import uvicorn
+import pytest
 import threading
 import webbrowser
 import redis.asyncio as redis
@@ -25,6 +26,16 @@ def run_fastapi(host: str = "127.0.0.1", port: int = 8000) -> None:
     url = f"http://{host}:{port}/"
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     uvicorn.run("api.app:app", host=host, port=port, reload=False)
+
+def run_tests(action: str) -> None:
+    """Execute the selected Pytest suite directly from the CLI."""
+    args_map: dict[str, list[str]] = {
+        "pytest_all": ["-v"],
+        "pytest_unit": ["tests/unit", "-v"],
+        "pytest_integration": ["tests/integration", "-v"],
+        "pytest_cov": ["--cov=services", "--cov=facades", "--cov=api", "--cov-report=term-missing", "-v"],
+    }
+    pytest.main(args_map.get(action, ["-v"]))
 
 def run_randomizer(game_instance) -> None:
     asyncio.run(game_instance.process_game())
@@ -56,6 +67,9 @@ if __name__ == "__main__":
 
     elif selection.action == "fastapi_server":
         run_fastapi()
+
+    elif selection.action.startswith("pytest_"):
+        run_tests(selection.action)
 
     elif selection.action == "grpc_test_loaded":
         test_grpc(
