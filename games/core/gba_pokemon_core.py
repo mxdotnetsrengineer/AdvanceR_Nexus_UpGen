@@ -78,6 +78,9 @@ class GBAPokemonCoreFactory(GamesCore):
 
     @staticmethod
     def _resolve_game_class(game: AvailableGames):
+        from games.gba.pokemon.fire_red_game import FireRedGame
+        from games.gba.pokemon.emerald_game import EmeraldGame
+
         mapping = {
             AvailableGames.ORIGINAL_FIRE_RED: FireRedGame,
             AvailableGames.RADICAL_FIRE_RED: FireRedGame,
@@ -86,3 +89,20 @@ class GBAPokemonCoreFactory(GamesCore):
         }
         return mapping[game]
     #End Protected Methods
+
+    def create_game(_self, game: AvailableGames) -> BaseGame:
+        memory_service = _self._create_memory_service()
+        keyboard_service = _self._create_keyboard_service()
+        domain_services = _self._create_services_with_domain_services(memory_service)
+        game_cls = _self._resolve_game_class(game)
+        
+        return game_cls(
+            game=game,
+            file_service=_self.file_service,
+            log_service=_self.log_service,
+            memory_service=memory_service,
+            config_service=_self.config_service,
+            keyboard_service=keyboard_service,
+            translations_service=_self.translations_service,
+            **domain_services,
+        )

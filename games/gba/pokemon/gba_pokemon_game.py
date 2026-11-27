@@ -2,6 +2,7 @@
 import redis.asyncio as redis
 import hashlib
 import copy
+import asyncio
 import json
 from dataclasses import asdict
 from enums.gba.games_enum import AvailableGames
@@ -152,6 +153,7 @@ class GBAPokemonGame(GBAGame):
                         width=f"{map.width:3d}",
                         height=f"{map.height:3d}",
                     ), False)
+                _self.events_service.find_map_events(game_file, map)
                 
                 for event in map.events:
                     self.events_service.process_event_by_id(event,[
