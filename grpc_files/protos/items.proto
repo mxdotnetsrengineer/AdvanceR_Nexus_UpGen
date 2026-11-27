@@ -8,7 +8,7 @@ service ItemsService {
 
 message GetAllItemsRequest {
   bytes game_file = 1;
-  optional int32 game_id = 2;
+  optional string current_game = 2;
 }
 
 message CompiledItemProto {

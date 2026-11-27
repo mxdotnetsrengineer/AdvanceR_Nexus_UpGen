@@ -9,6 +9,9 @@
         "empty_game_file": "The provided game file is empty.",
         "rom_size_exceeded": "The file size ({size} bytes) exceeds the maximum allowed ({max_size} bytes).",
         "internal_server_error": "An unexpected internal server error occurred.",
-        "invalid_game_filename": "Invalid file name '{provided_name}'. You must upload the file: '{expected_name}'."
+        "invalid_game_filename": "Invalid file name '{provided_name}'. You must upload the file: '{expected_name}'.",
+        "tls_certs_not_found" : "TLS certificates not found at '{cert_path}' and '{key_path}'. Generate local dev certificates or configure GRPC_CERT_PATH / GRPC_KEY_PATH.",
+        "invalid_file_path": "Invalid file path '{file_path}'. Path traversal outside the allowed directory is not allowed.",
+        "invalid_rom_extension": "Invalid ROM file extension in '{game_path}'. Only .gba files are supported."
     }
 }

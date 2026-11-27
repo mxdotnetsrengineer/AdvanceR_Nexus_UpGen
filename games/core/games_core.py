@@ -28,12 +28,12 @@ class GamesCore(ABC):
 
     #Public Methods
     @abstractmethod
-    def create_game(self, game: AvailableGames, game_file: bytearray | None = None) -> GBAGame:
+    def create_game(self, game: AvailableGames, game_file: bytes | bytearray | None = None, readonly: bool = False) -> GBAGame:
         pass
     # End Public Methods
     
     #Protected Methods
     @abstractmethod
-    def _create_memory_service(self, game_file: bytearray | None = None) -> Any:
+    def _create_memory_service(self, game_file: bytes | bytearray | None = None, readonly: bool = False) -> Any:
         pass
     # End Protected Methods

@@ -2,7 +2,7 @@ import redis.asyncio as redis
 from pathlib import Path
 from enums.gba.games_enum import AvailableGames
 from enums.app_enums import AvailableLanguages
-from helpers.gba.pokemon.gba_pokemon_helper import GAMES
+from exceptions.domain_exceptions import DomainValidationError, ResourceNotFoundError
 from services.log_service import LogService
 from services.file_service import FileService
 from services.config_service import ConfigService
@@ -23,9 +23,9 @@ class GamesProvider:
     # Public Methods
     @staticmethod
     def create(game: AvailableGames, language: AvailableLanguages | str | None = None, config_service: ConfigService | None = None,
-        redis_client: redis.Redis | None = None, game_file: bytearray | None = None, game_filename: str | None = None) -> BaseGame:
+        redis_client: redis.Redis | None = None, game_file: bytes | bytearray | None = None, game_filename: str | None = None, readonly: bool = False) -> BaseGame:
         
-        resolved_config = config_service or GamesProvider.__resolve_config(game, language)
+        resolved_config = config_service or GamesProvider._resolve_config(game, language)
 
         
         translations_service = TranslationsService(resolved_config.get("CURRENT_LANGUAGE"))
@@ -37,24 +37,24 @@ class GamesProvider:
         if game_file is not None and game_filename is not None:
             configured_path = resolved_config.get("ORIGINAL_GAME", "")
             expected_filename = Path(configured_path).name
-            provided_filename = Path(game_filename).name
+            provided_filename = Path(game_filename).name if game_filename else ""
 
             if expected_filename and provided_filename != expected_filename:
                 error_service.raise_error(
                     "errors.invalid_game_filename",
-                    error_type="value",
+                    DomainValidationError,
                     provided_name=provided_filename,
                     expected_name=expected_filename,
                 )
 
-        GamesProvider.__log_config_status(resolved_config, translations_service, log_service, game)
+        GamesProvider._log_config_status(resolved_config, translations_service, log_service, game)
 
         file_service = FileService(log_service, translations_service, resolved_config,error_service)
 
         # 2. Factory
         factory_cls = GamesProvider._FACTORY_REGISTRY.get(game)
         if not factory_cls:
-            error_service.raise_error("errors.no_game", error_type="value", game=game)
+            error_service.raise_error("errors.no_game", DomainValidationError, game=game)
 
         # 3. Family Build
         factory = factory_cls(
@@ -65,19 +65,19 @@ class GamesProvider:
             error_service=error_service,
             redis_client=redis_client
         )
-        return factory.create_game(game, game_file=game_file)
+        return factory.create_game(game, game_file=game_file, readonly=readonly)
     # End Public Methods
 
     # Private Methods
     @staticmethod
-    def __resolve_config(
+    def _resolve_config(
         game: AvailableGames,
         language: AvailableLanguages | str | None = None,
     ) -> ConfigService:
         """Load game configuration or log a localized error if the config file is missing."""
         lang_str = language.name if isinstance(language, AvailableLanguages) else language
         try:
-            return ConfigService.load_for_game(GAMES[int(game.value)], language=lang_str)
+            return ConfigService.load_for_game(game.config_key, language=lang_str)
         except FileNotFoundError as exc:
             fallback_config = ConfigService.load_global()
             fallback_lang = lang_str or fallback_config.get("CURRENT_LANGUAGE", "EN_US")
@@ -87,13 +87,13 @@ class GamesProvider:
 
             error_service.raise_error(
                 "errors.game_config_not_found",
-                error_type="file_not_found",
+                ResourceNotFoundError,
                 cause=exc,
                 game_path=str(exc),
             )
 
     @staticmethod
-    def __log_config_status(
+    def _log_config_status(
         config_service: ConfigService,
         translations_service: TranslationsService,
         log_service: LogService,

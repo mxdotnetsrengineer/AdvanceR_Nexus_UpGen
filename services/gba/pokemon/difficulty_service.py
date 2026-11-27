@@ -1,5 +1,8 @@
 import random
+from collections.abc import Sequence
 from models.gba.pokemon.compiled_base_stats import CompiledBaseStats
+from models.difficulty_config import DifficultyConfig
+from models.difficulty_group import DifficultyGroup
 from services.config_service import ConfigService
 
 class DifficultyService:
@@ -9,24 +12,27 @@ class DifficultyService:
     ):
         self.config = config_service
         self._cached_difficulty_pools: list[tuple[int, list[CompiledBaseStats]]] | None = None
-        self.current_difficulty = self.config.get("CURRENT_DIFFICULTY")
+
+        dif_json = self.config.get("CURRENT_DIFFICULTY")
+        self.current_difficulty: DifficultyConfig | None = (
+            DifficultyConfig.from_dict(dif_json) if isinstance(dif_json, dict) else None
+        )
         
     # Public Methods
     def get_difficulty_pools(self, wild_grass_slot_count: int,wild_candidates: list[CompiledBaseStats]):
         """Return cached difficulty pools or a single fallback tier containing all wild candidates."""
-        difficulty_groups = self.current_difficulty["groups"]
+        if self._cached_difficulty_pools is not None:
+            return self._cached_difficulty_pools
+    
+        if self.current_difficulty is None or not self.current_difficulty.groups:
+            self._cached_difficulty_pools = [(100, list(wild_candidates))]
+            return self._cached_difficulty_pools
         
-        # if not difficulty, random
-        if not difficulty_groups or not isinstance(difficulty_groups, list):
-            return [random.choice(wild_candidates) for _ in range(wild_grass_slot_count)]
-
-        if self._cached_difficulty_pools is None:
-            self._cached_difficulty_pools = self.__build_difficulty_pools(
-                difficulty_groups,
-                wild_candidates,
-                min_pool_size=wild_grass_slot_count,
-            )
-
+        self._cached_difficulty_pools = self._build_difficulty_pools(
+            self.current_difficulty.groups,
+            wild_candidates,
+            min_pool_size=wild_grass_slot_count,
+        )
         return self._cached_difficulty_pools
 
     def get_chosen_pool(self, average_level: float) -> list[CompiledBaseStats]:
@@ -42,27 +48,26 @@ class DifficultyService:
 
     def calculate_adjusted_level(self, original_level: int) -> int:
         """Adjust an encounter or trainer Pokémon level according to configured difficulty rules."""
+        if self.current_difficulty is None:
+            return original_level
+        
         max_pokemon_level = 100
-        level_mode = self.current_difficulty["level_mode"]
-        quantity = self.current_difficulty["level_quantity"]
-        min_allowed = self.current_difficulty["min_level"]
-
-        match level_mode:
+        match self.current_difficulty.level_mode:
             case "ADD":
-                new_level = original_level + quantity
+                new_level = original_level + self.current_difficulty.level_quantity
             case "SUBS":
-                new_level = original_level - quantity
+                new_level = original_level - self.current_difficulty.level_quantity
             case _:
                 new_level = original_level
 
-        return max(min_allowed, min(max_pokemon_level, new_level))
+        return max(self.current_difficulty.min_level, min(max_pokemon_level, new_level))
     
     # End Public Methods
 
     # Private Methods
-    def __build_difficulty_pools(
+    def _build_difficulty_pools(
         self,
-        difficulty_groups: list[dict],
+        difficulty_groups: Sequence[DifficultyGroup],
         wild_candidates: list[CompiledBaseStats],
         min_pool_size: int = 12,
     ) -> list[tuple[int, list[CompiledBaseStats]]]:
@@ -72,21 +77,17 @@ class DifficultyService:
         bst_expansion_step = 50
 
         for group in difficulty_groups:
-            if not isinstance(group, dict):
+            if not isinstance(group, DifficultyGroup):
                 continue
-
-            group_max_level = group["max_level"]
-            max_bst = group["max_bst"]
-            max_stage = group["max_evolution_stage"]
 
             # Pre-filter candidates eligible for this evolution stage before expanding BST ranges
             stage_eligible = [
                 sp for sp in wild_candidates
-                if sp.evolution_stage <= max_stage and not sp.is_mega
+                if sp.evolution_stage <= group.max_evolution_stage and not sp.is_mega
             ]
 
             lower_bst = prev_max_bst
-            upper_bst = max_bst
+            upper_bst = group.max_bst
             pool = [sp for sp in stage_eligible if lower_bst < sp.bst <= upper_bst]
 
             while len({sp.name.strip().lower() for sp in pool}) < min_pool_size and lower_bst > 0:
@@ -97,8 +98,8 @@ class DifficultyService:
             if not pool:
                 pool = wild_candidates
 
-            pools.append((group_max_level, pool))
-            prev_max_bst = max_bst
+            pools.append((group.max_level, pool))
+            prev_max_bst = group.max_bst
 
         return pools
     # End Private Methods
