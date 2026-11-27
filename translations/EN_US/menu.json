@@ -42,7 +42,7 @@
         "messages": {
             "exiting": "Exiting application...",
             "current_tag": " (Current)",
-            "language_updated": "✔ Language updated to: {label}",
+            "language_updated": "✔ Language updated to: {language}",
             "invalid_option": "Invalid option. Please try again."
         }
     }

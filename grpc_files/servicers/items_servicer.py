@@ -1,5 +1,5 @@
 import grpc
-from models.game_input import GameInput
+from models.game_input import GameInput  
 from grpc_files.generated import items_pb2, items_pb2_grpc
 from exceptions.domain_exceptions import (
     DomainValidationError,
@@ -14,11 +14,12 @@ class ItemsGrpcServicer(items_pb2_grpc.ItemsServiceServicer):
         self.items_facade = items_facade
 
     async def GetAllItems(self, request, context):
-        game_id = request.game_id if request.HasField("game_id") else None
+        raw_file = request.game_file if request.game_file else None
+        current_game = request.current_game if request.HasField("current_game") else None
 
         game_input = GameInput(
-            game_id=game_id,
-            raw_file=None,
+            current_game=current_game,
+            raw_file=raw_file,
         )
 
         try:

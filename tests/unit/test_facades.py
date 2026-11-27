@@ -13,7 +13,7 @@ async def test_facade_raises_validation_error_on_empty_rom(error_service):
         error_service=error_service,
     )
     empty_input = GameInput(
-        game_id=0,
+        current_game="fire_red",
         raw_file=b"",
         filename="Pokemon - FireRed Version (USA).gba",
     )
@@ -25,6 +25,20 @@ async def test_facade_raises_validation_error_on_empty_rom(error_service):
 
 
 @pytest.mark.asyncio
+async def test_facade_raises_validation_error_on_invalid_game_id(error_service):
+    facade = ItemsFacade(
+        global_config=ConfigService({"CURRENT_LANGUAGE": "EN_US"}),
+        error_service=error_service,
+    )
+    invalid_input = GameInput(current_game="non_existent_pokemon_game")
+
+    with pytest.raises(DomainValidationError) as exc_info:
+        await facade.get_all_items_gba(invalid_input)
+
+    assert "unsupported game" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
 async def test_facade_delegates_to_items_service_with_mocked_game(error_service, fake_gba_rom):
     mock_game = MagicMock()
     mock_game.config_service.get.return_value = 0x1000000
@@ -33,11 +47,11 @@ async def test_facade_delegates_to_items_service_with_mocked_game(error_service,
 
     facade = ItemsFacade(
         global_config=ConfigService({"CURRENT_LANGUAGE": "EN_US"}),
-        error_service=error_service,
+        error_service=error_service
     )
 
     with patch("facades.base_facade.GamesProvider.create", return_value=mock_game):
-        result = await facade.get_all_items_gba(GameInput(game_id=0))
+        result = await facade.get_all_items_gba(GameInput(current_game="fire_red"))
 
     assert result == {1: "MASTER BALL"}
     mock_game.items_service.get_all_items.assert_called_once_with(fake_gba_rom)

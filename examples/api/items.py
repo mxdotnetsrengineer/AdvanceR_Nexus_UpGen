@@ -2,7 +2,7 @@ import json
 import urllib.error
 import urllib.request
 
-from enums.gba.games_enum import AvailableGames, GameSelection
+from enums.gba.games_enum import AvailableGames
 from examples.api.common import _build_multipart_form
 
 BASE_URL = "http://127.0.0.1:8000"

@@ -1,22 +1,19 @@
 import grpc
-from enums.gba.games_enum import AvailableGames
-from services.config_service import ConfigService
 from grpc_files.generated import items_pb2, items_pb2_grpc
-from grpc_files.grpc_server import test_grpc
 
 
 def execute_get_all_items(
     channel: grpc.Channel,
     game_bytes: bytes | None,
-    game_id: int | None,
+    current_game: str | None,
 ) -> None:
     """Stub execution and console formatting for ItemsService.GetAllItems."""
     stub = items_pb2_grpc.ItemsServiceStub(channel)
 
-    if game_bytes is not None and game_id is not None:
+    if game_bytes is not None and current_game is not None:
         request = items_pb2.GetAllItemsRequest(
             game_file=game_bytes,
-            game_id=game_id,
+            current_game=current_game,
         )
     else:
         request = items_pb2.GetAllItemsRequest()

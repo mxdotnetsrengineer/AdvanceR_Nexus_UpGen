@@ -1,17 +1,13 @@
-from enum import Enum,StrEnum
+from enum import StrEnum
 
-class AvailableGames(Enum):
-    ORIGINAL_FIRE_RED = 0
-    RADICAL_FIRE_RED = 1
-    LEAF_GREEN = 2
-    CUSTOM_LEAF_GREEN = 3
-    EMERALD = 4
-    EMERALD_KAIZO = 5
+class AvailableGames(StrEnum):
+    ORIGINAL_FIRE_RED = "fire_red"
+    RADICAL_FIRE_RED = "radical_red"
+    #LEAF_GREEN = "leaf_green"
+    #CUSTOM_LEAF_GREEN = "leaf_green_custom"
+    EMERALD = "emerald"
+    EMERALD_KAIZO = "emerald_kaizo"
 
-class GameSelection(StrEnum):
-    ORIGINAL_FIRE_RED = "FIRE_RED"
-    RADICAL_FIRE_RED = "RADICAL_RED"
-    # Agrega aquí los demás miembros que tengas en AvailableGames
-
-    def to_domain_enum(self) -> AvailableGames:
-        return AvailableGames[self.name]
+    @property
+    def config_key(self) -> str:
+        return self.value
