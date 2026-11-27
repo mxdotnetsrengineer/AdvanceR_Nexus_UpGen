@@ -197,6 +197,7 @@ class StatsService:
             return []
 
         # Evolution entry struct (8 bytes): [method: u16, param: u16, target_species: u16, unused: u16]
+        target_species_field_offset = 4
         evolutions: list[tuple[int, bool]] = []
 
         u16_fields_per_entry = 4
