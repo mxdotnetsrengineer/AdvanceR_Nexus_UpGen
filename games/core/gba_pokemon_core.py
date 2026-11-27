@@ -14,8 +14,8 @@ from games.gba.pokemon.fire_red_game import FireRedGame
 from games.gba.pokemon.emerald_game import EmeraldGame
 
 class GBAPokemonCoreFactory(GamesCore):
-    def create_game(self, game: AvailableGames, game_file: bytearray | None = None) -> BaseGame:
-        memory_service = self._create_memory_service(game_file=game_file)
+    def create_game(self, game: AvailableGames, game_file: bytes | bytearray | None = None, readonly: bool = False) -> BaseGame:
+        memory_service = self._create_memory_service(game_file=game_file, readonly=readonly)
         keyboard_service = self._create_keyboard_service()
         domain_services = self._create_services_with_domain_services(memory_service)
         game_cls = self._resolve_game_class(game)
@@ -33,13 +33,18 @@ class GBAPokemonCoreFactory(GamesCore):
         )
 
     #Protected Methods
-    def _create_memory_service(self, game_file: bytearray | None = None) -> GBAMemoryService:
+    def _create_memory_service(self, game_file: bytes | bytearray | None = None, readonly: bool = False) -> GBAMemoryService:
         memory_service = GBAMemoryService(self.translations_service)
-        memory_service.game_file = (
-            game_file
-            if game_file is not None
-            else self.file_service.open_game(self.config_service.get("ORIGINAL_GAME"))
-        )
+        if game_file is not None:
+            memory_service.game_file = game_file
+        elif readonly:
+            memory_service.game_file = self.file_service.open_game_readonly(
+                self.config_service.get("ORIGINAL_GAME")
+            )
+        else:
+            memory_service.game_file = self.file_service.open_game(
+                self.config_service.get("ORIGINAL_GAME")
+            )
         return memory_service
 
     def _create_keyboard_service(self) -> GBAKeyboardService:
@@ -73,6 +78,9 @@ class GBAPokemonCoreFactory(GamesCore):
 
     @staticmethod
     def _resolve_game_class(game: AvailableGames):
+        from games.gba.pokemon.fire_red_game import FireRedGame
+        from games.gba.pokemon.emerald_game import EmeraldGame
+
         mapping = {
             AvailableGames.ORIGINAL_FIRE_RED: FireRedGame,
             AvailableGames.RADICAL_FIRE_RED: FireRedGame,
@@ -81,3 +89,20 @@ class GBAPokemonCoreFactory(GamesCore):
         }
         return mapping[game]
     #End Protected Methods
+
+    def create_game(_self, game: AvailableGames) -> BaseGame:
+        memory_service = _self._create_memory_service()
+        keyboard_service = _self._create_keyboard_service()
+        domain_services = _self._create_services_with_domain_services(memory_service)
+        game_cls = _self._resolve_game_class(game)
+        
+        return game_cls(
+            game=game,
+            file_service=_self.file_service,
+            log_service=_self.log_service,
+            memory_service=memory_service,
+            config_service=_self.config_service,
+            keyboard_service=keyboard_service,
+            translations_service=_self.translations_service,
+            **domain_services,
+        )

@@ -27,6 +27,7 @@ class ItemService:
         self.errors = error_service
 
         self.items: dict[int, CompiledItem] = {}
+        self._valid_random_item_ids: list[int] | None = None
 
     # Public Methods
     def get_all_items(self, game_file: bytearray) -> dict[int, CompiledItem]:
@@ -55,7 +56,7 @@ class ItemService:
 
         items: dict[int, CompiledItem] = {}
         for item_id in range(self.config.get("MAX_ITEM_ID") + 1):
-            item = self.__get_item_data(game_file, item_id, items_table_offset)
+            item = self._get_item_data(game_file, item_id, items_table_offset)
             if item:
                 items[item_id] = item
                 self.log.info(
@@ -71,10 +72,12 @@ class ItemService:
                     False,
                 )
         self.items = items
+        self._valid_random_item_ids = None
         return items
 
     @staticmethod
     def execute_item_function(
+    __self,
     game_file: bytearray,
     event: CompiledEvent,
     item_handler: Callable[[bytearray], bytes | bytearray],
@@ -104,13 +107,13 @@ class ItemService:
         if items_table_offset is None:
             return bytearray()
 
-        max_item_id = self.config.get("MAX_ITEM_ID")
+        valid_ids = self._get_valid_item_ids(game_file, items_table_offset)
+        random_new_item = random.choice(valid_ids) if valid_ids else 1
 
-        while True:
-            random_new_item = random.randint(1, max_item_id)
-            item_name = self.__get_item_name(game_file, random_new_item, items_table_offset)
-            if "???" not in item_name and item_name != "UNKNOWN":
-                break
+        if random_new_item in self.items:
+            item_name = self.items[random_new_item].name
+        else:
+            item_name = self._get_item_name(game_file, random_new_item, items_table_offset)
 
         # Gen III XSE Script opcodes for obtaining an item:
         # copyvarifnotzero (0x1A) + var 0x8000 (item) / 0x8001 (qty) + callstd 1 (0x09 0x01) + end (0x02)
@@ -136,14 +139,38 @@ class ItemService:
             item_data["id"]: CompiledItem.dict_to_class(item_data)
             for item_data in json.loads(items_json)
         }
+        self._valid_random_item_ids = None
+        
     # End Public Methods
     # Private Methods
-    def __get_item_name(self, game_file: bytearray, item_id: int, items_table_offset: int | None = None) -> str:
+    def _get_valid_item_ids(self, game_file: bytearray, items_table_offset: int) -> list[int]:
+        if self._valid_random_item_ids is not None:
+            return self._valid_random_item_ids
+
+        if self.items:
+            self._valid_random_item_ids = [
+                item_id
+                for item_id, item in self.items.items()
+                if item_id > 0 and "???" not in item.name and item.name != "UNKNOWN"
+            ]
+            return self._valid_random_item_ids
+
+        max_item_id = self.config.get("MAX_ITEM_ID")
+        valid_ids: list[int] = []
+        for item_id in range(1, max_item_id + 1):
+            name = self._get_item_name(game_file, item_id, items_table_offset)
+            if "???" not in name and name != "UNKNOWN":
+                valid_ids.append(item_id)
+
+        self._valid_random_item_ids = valid_ids
+        return valid_ids
+    
+    def _get_item_name(self, game_file: bytearray, item_id: int, items_table_offset: int | None = None) -> str:
         """Resolve the readable name of an item by its ID from the item data table."""
-        item = self.__get_item_data(game_file, item_id, items_table_offset)
+        item = self._get_item_data(game_file, item_id, items_table_offset)
         return item.name if item else "UNKNOWN"
 
-    def __get_item_data(self, game_file: bytearray, item_id: int, items_table_offset: int | None = None,):
+    def _get_item_data(self, game_file: bytearray, item_id: int, items_table_offset: int | None = None,):
         """Read the 44-byte item structure by its ID from the item table and return a item object."""
         game_size = len(game_file)
 

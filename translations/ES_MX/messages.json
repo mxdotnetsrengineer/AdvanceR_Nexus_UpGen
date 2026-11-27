@@ -6,10 +6,9 @@
             "global_initialized": "Configuración global inicializada.",
             "game_initialized": "Configuración del juego inicializada para: {game_name}"
         },
-        "decryption_complete": "¡Lectura y desencriptación del archivo completada!",
+        "parsing_complete": "¡Lectura y desencriptación del archivo completada!",
         "banks": {
-            "decryption_start": "INICIANDO LECTURA: Tabla principal de bancos en {offset}",
-            "empty_table_position": "Posición de memoria {ptr_memory}: [Vacía o reservada]",
+            "parsing_start": "INICIANDO LECTURA: Tabla principal de bancos en {offset}",
             "table_pointer_found": "Posición de memoria {ptr_memory} -> El puntero de la lista de bancos apunta al offset: {offset}",
             "pointer_not_found": "No se encontró el puntero de bancos de mapas en el rango estándar. Puede tratarse de un juego modificado.",
             "is_bank_table": "¿Es tabla de bancos?: {answer}",          

@@ -1,3 +1,4 @@
+import os
 import json
 from pathlib import Path
 from typing import Any
@@ -33,7 +34,17 @@ class ConfigService:
         if options_path.exists():
             raw_data.update(json.loads(options_path.read_text(encoding="utf-8")))
 
-        parsed_data = cls.__parse_hex_values(raw_data)
+        for key, current_val in raw_data.items():
+            env_val = os.getenv(key)
+            if env_val is not None:
+                if isinstance(current_val, bool):
+                    raw_data[key] = env_val.strip().lower() in ("true", "1", "yes")
+                elif isinstance(current_val, int):
+                    raw_data[key] = int(env_val, 0)
+                else:
+                    raw_data[key] = env_val
+
+        parsed_data = cls._parse_hex_values(raw_data)
         lang = parsed_data.get("CURRENT_LANGUAGE", "EN_US")
 
         parsed_data["missing_global"] = missing_global
@@ -50,7 +61,7 @@ class ConfigService:
             base_config["CURRENT_LANGUAGE"] = language
 
         game_dir = BASE_DIR / "config" / "gba" / "pokemon"
-        merged_game_data, parent_key = cls.__load_game_hierarchy(game_dir, game_key)
+        merged_game_data, parent_key = cls._load_game_hierarchy(game_dir, game_key)
         base_config.update(merged_game_data)
 
         if language is not None:
@@ -74,10 +85,10 @@ class ConfigService:
                 for flag_key, flag_value in json.loads(flags_path.read_text(encoding="utf-8")).items():
                     base_config.setdefault(flag_key, flag_value)
 
-        return cls(cls.__parse_hex_values(base_config))
+        return cls(cls._parse_hex_values(base_config))
 
     @classmethod
-    def __load_game_hierarchy(
+    def _load_game_hierarchy(
         cls,
         game_dir: Path,
         game_key: str,
@@ -100,13 +111,13 @@ class ConfigService:
         parent_key = game_data.get("BASE_CONFIG")
 
         if parent_key:
-            parent_data, _ = cls.__load_game_hierarchy(game_dir, parent_key, visited)
+            parent_data, _ = cls._load_game_hierarchy(game_dir, parent_key, visited)
             return {**parent_data, **game_data}, parent_key
 
         return game_data, None
     
     @staticmethod
-    def __parse_hex_values(raw_data: dict[str, Any]) -> dict[str, Any]:
+    def _parse_hex_values(raw_data: dict[str, Any]) -> dict[str, Any]:
         """Convert hex string values ('0x...') into integers."""
         processed: dict[str, Any] = {}
         for key, value in raw_data.items():

@@ -1,6 +1,3 @@
-#Spacing, Character
-GAMES = ["fire_red", "radical_red", "leaf_green", "leaf_green_custom", "emerald", "emerald_kaizo"]
-
 DIFFICULTIES = ["easy", "normal", "hard", "inferno"]
 
 GBA_POKEMON_III_CHAR_TABLE = {

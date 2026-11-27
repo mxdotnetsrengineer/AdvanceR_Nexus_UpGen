@@ -2,6 +2,7 @@ from typing import Any
 from enums.gba.games_enum import AvailableGames
 from enums.gba.pokemon.gba_pokemon_enums import GBAPokemonKeyIndex, GBAPokemonLogicKeyIndex, GBAPokemonOthersKeyIndex, GBAPokemonOthersLogicKeyIndex
 from models.gba.pokemon.game_ui_keyboard import GameUIKeyboard
+from models.gba.pokemon.game_ui_keyboard_logic import GameUIKeyboardLogic
 from models.gba.pokemon.ui_keyboard_patch import UIKeyboardPatch
 from decorators.app_decorators import when_enabled,skip_when_enabled
 from helpers.gba.games_helper import STRING_TERMINATOR
@@ -11,8 +12,8 @@ from services.config_service import ConfigService
 class GBAKeyboardService:
     def __init__(self, config_service: ConfigService):
         self.allowed_chars = {char: byte for byte, char in GBA_POKEMON_III_CHAR_TABLE.items()}
-        self.keyboards: Any = []
-        self.keyboards_logic: Any = []
+        self.keyboards: GameUIKeyboard | None = None
+        self.keyboards_logic: GameUIKeyboardLogic | None = None 
         self.config = config_service
 
     # Public Methods
@@ -33,7 +34,7 @@ class GBAKeyboardService:
         keyboards_occurrences = [2, 1, 1]
         match game:
             case AvailableGames.ORIGINAL_FIRE_RED | AvailableGames.RADICAL_FIRE_RED | AvailableGames.EMERALD | AvailableGames.EMERALD_KAIZO:
-                self.__spanish_replace_pokemon_gba()
+                self._spanish_replace_pokemon_gba()
 
         keyboard_layers = [
             (self.keyboards.default, self.keyboards.logic.default, game_keyboards.logic.offsets[0], keyboards_occurrences[0]),
@@ -42,7 +43,7 @@ class GBAKeyboardService:
         ]
 
         for visual_layout, logic_layout, target_offset, occurrences in keyboard_layers:
-            self.__write_keyboard_to_game_file(
+            self._write_keyboard_to_game_file(
                 game_file=game_file,
                 visual_keyboard=visual_layout,
                 logic_keyboard=logic_layout,
@@ -53,7 +54,7 @@ class GBAKeyboardService:
     # End Public Methods
 
     # Private Methods
-    def __spanish_replace_pokemon_gba(self) -> None:
+    def _spanish_replace_pokemon_gba(self) -> None:
         """Configure and apply Spanish character layout patches for GBA UI keyboards."""
         shared_main_indexes = {
             "visual_remove_indexes": (GBAPokemonKeyIndex.M,),
@@ -121,11 +122,11 @@ class GBAKeyboardService:
             logic_null_bytes=[bytearray(2), bytearray(2), bytearray(2), bytearray(3)],
         )
 
-        self.__apply_main_keyboards_patch(upper_patch)
-        self.__apply_main_keyboards_patch(lower_patch)
-        self.__apply_others_keyboard_patch(others_patch)
+        self._apply_main_keyboards_patch(upper_patch)
+        self._apply_main_keyboards_patch(lower_patch)
+        self._apply_others_keyboard_patch(others_patch)
 
-    def __write_keyboard_to_game_file(
+    def _write_keyboard_to_game_file(
         self,
         game_file: bytearray,
         visual_keyboard: list[list[tuple[int, int]]],
@@ -136,7 +137,7 @@ class GBAKeyboardService:
     ) -> None:
         """Write the patched visual tilemap and logic bytes into their target offsets in `game_file`."""
         game_size = len(game_file)
-        keyboard_offset, keyboard_bytes = self.__get_total_keyboard_bytes(
+        keyboard_offset, keyboard_bytes = self._get_total_keyboard_bytes(
             game_file, visual_keyboard, keyboard_separators, keyboards_occurrences
         )
 
@@ -146,42 +147,42 @@ class GBAKeyboardService:
         if 0 <= target_offset and target_offset + len(logic_keyboard) <= game_size:
             game_file[target_offset : target_offset + len(logic_keyboard)] = logic_keyboard
 
-    def __apply_main_keyboards_patch(self, patch: UIKeyboardPatch) -> None:
+    def _apply_main_keyboards_patch(self, patch: UIKeyboardPatch) -> None:
         """Apply base patch plus character relocation for upper and lower keyboards."""
-        self.__apply_keyboard_base_patch(patch)
+        self._apply_keyboard_base_patch(patch)
 
         for index, character in zip(patch.visual_relocate_indexes, patch.relocated_characters):
-            self.__replace_char(patch.visual_keyboard, index, character)
+            self._replace_char(patch.visual_keyboard, index, character)
 
         for index, character in zip(patch.logic_relocate_indexes, patch.relocated_characters):
             patch.logic_keyboard[index] = character
 
 
-    def __apply_others_keyboard_patch(self, patch: UIKeyboardPatch) -> None:
+    def _apply_others_keyboard_patch(self, patch: UIKeyboardPatch) -> None:
         """Apply base patch to the symbols/others keyboard layout."""
-        self.__apply_keyboard_base_patch(patch)
+        self._apply_keyboard_base_patch(patch)
 
-    def __apply_keyboard_base_patch(self, patch: UIKeyboardPatch) -> None:
+    def _apply_keyboard_base_patch(self, patch: UIKeyboardPatch) -> None:
         """Apply shared visual, logical, and null-byte modifications to a UI keyboard patch."""
-        self.__insert_char_and_shift_forward(
+        self._insert_char_and_shift_forward(
             patch.visual_keyboard,
             patch.visual_remove_indexes,
             patch.visual_insert_indexes,
             patch.characters_to_insert,
         )
-        self.__insert_char_logic_and_shift_forward_bytes(
+        self._insert_char_logic_and_shift_forward_bytes(
             patch.logic_keyboard,
             patch.logic_remove_indexes,
             patch.logic_insert_indexes,
             patch.characters_to_insert,
         )
-        self.__replace_logic_char(
+        self._replace_logic_char(
             patch.logic_keyboard,
             indexes=patch.logic_null_indexes,
             new_bytes_list=patch.logic_null_bytes,
         )
 
-    def __get_total_keyboard_bytes(
+    def _get_total_keyboard_bytes(
         self,
         game_file: bytearray,
         ui_keyboard: list[list[tuple[int, int]]],
@@ -219,7 +220,7 @@ class GBAKeyboardService:
         return keyboard_offset, final_keyboard
 
 
-    def __insert_char_logic_and_shift_forward_bytes(
+    def _insert_char_logic_and_shift_forward_bytes(
         self,
         logic_bytes: bytearray,
         remove_indexes: list[int] | tuple[int, ...],
@@ -240,7 +241,7 @@ class GBAKeyboardService:
         logic_bytes[:] = clean_chars
 
 
-    def __insert_char_and_shift_forward(
+    def _insert_char_and_shift_forward(
         self,
         ui_keyboard: list[list[tuple[int, int]]],
         remove_indexes: list[int] | tuple[int, ...],
@@ -262,7 +263,7 @@ class GBAKeyboardService:
                 row[col] = (spacing, next(char_iter))
 
 
-    def __replace_logic_char(
+    def _replace_logic_char(
         self,
         target_bytes: bytearray,
         indexes: int | list[int] | tuple[int, ...],
@@ -279,7 +280,7 @@ class GBAKeyboardService:
         return target_bytes
 
 
-    def __replace_char(self, ui_keyboard: list[list[tuple[int, int]]], character_idx: int, new_byte: int) -> None:
+    def _replace_char(self, ui_keyboard: list[list[tuple[int, int]]], character_idx: int, new_byte: int) -> None:
         """Replace a single character byte inside the 8-column visual keyboard grid."""
         keyboard_columns = 8
         row, col = divmod(character_idx, keyboard_columns)

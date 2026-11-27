@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, Response
+from fastapi import APIRouter, Depends, Form, Response, Request
 from api.schemas.config_schema import LanguageSelection, UpdateLanguageResponse
 from facades.config_facade import ConfigFacade
 
@@ -12,6 +12,7 @@ def get_config_facade() -> ConfigFacade:
 
 @router.patch("/language", response_model=UpdateLanguageResponse)
 async def update_language(
+    request: Request,
     response: Response,
     language: LanguageSelection = Form(...),
     config_facade: ConfigFacade = Depends(get_config_facade),
@@ -25,6 +26,7 @@ async def update_language(
         max_age=max_age,
         httponly=True,
         samesite="lax",
+        secure=request.url.scheme == "https"
     )
 
     return UpdateLanguageResponse(language=active_lang, message=message)

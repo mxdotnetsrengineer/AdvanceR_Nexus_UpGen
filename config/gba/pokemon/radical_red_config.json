@@ -7,7 +7,7 @@
     "MAX_ROM_SIZE" : "0x2000000",
     "FREE_SPACE_START": "0x1A00000",
     
-    "MAPS_PER_BANK_TO_PRINT": 130,
+    "MAX_MAPS_PER_BANK": 130,
     
     "MAX_ITEM_ID": 749,
     "POKEBALL_SPRITE_ID": 92,

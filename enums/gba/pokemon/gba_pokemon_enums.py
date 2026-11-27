@@ -1,35 +1,122 @@
 from decorators.app_decorators import keys_from_str
-from enum import IntEnum
+from enum import IntEnum, auto
 
-@keys_from_str
-class GBAPokemonKeyIndex:
-    """
-    A, B, C, D, E, F, SPACE_1, DOT,
-    G, H, I, J, K, L, SPACE_2, COMMA,
-    M, N, O, P, Q, R, S, SPACE_3
-    T, U, V, W, X, Y, Z, SPACE_4
-    """
+class GBAPokemonKeyIndex(IntEnum):
+    A = 0
+    B = auto()
+    C = auto()
+    D = auto()
+    E = auto()
+    F = auto()
+    SPACE_1 = auto()
+    DOT = auto()
+    G = auto()
+    H = auto()
+    I = auto()
+    J = auto()
+    K = auto()
+    L = auto()
+    SPACE_2 = auto()
+    COMMA = auto()
+    M = auto()
+    N = auto()
+    O = auto()
+    P = auto()
+    Q = auto()
+    R = auto()
+    S = auto()
+    SPACE_3 = auto()
+    T = auto()
+    U = auto()
+    V = auto()
+    W = auto()
+    X = auto()
+    Y = auto()
+    Z = auto()
+    SPACE_4 = auto()
 
-@keys_from_str
-class GBAPokemonLogicKeyIndex:
-    __doc__ = ", ".join(
-        k.name for k in GBAPokemonKeyIndex if not k.name.startswith("SPACE")
-    )
 
-@keys_from_str
-class GBAPokemonOthersKeyIndex:
-     """
-    NUM_0, NUM_1, NUM_2, NUM_3, NUM_4, SPACE_1
-    NUM_5, NUM_6, NUM_7, NUM_8, NUM_9, SPACE_2
-    EXCLAMATION, QUESTION, MALE, FEMALE, SLASH, HYPHEN, SPACE_3
-    ELLIPSIS, QUOTE_DOUBLE_OPEN, QUOTE_DOUBLE_CLOSE, QUOTE_SINGLE_OPEN, QUOTE_SINGLE_CLOSE, SPACE_4
-    """
+class GBAPokemonLogicKeyIndex(IntEnum):
+    A = 0
+    B = auto()
+    C = auto()
+    D = auto()
+    E = auto()
+    F = auto()
+    DOT = auto()
+    G = auto()
+    H = auto()
+    I = auto()
+    J = auto()
+    K = auto()
+    L = auto()
+    COMMA = auto()
+    M = auto()
+    N = auto()
+    O = auto()
+    P = auto()
+    Q = auto()
+    R = auto()
+    S = auto()
+    T = auto()
+    U = auto()
+    V = auto()
+    W = auto()
+    X = auto()
+    Y = auto()
+    Z = auto()
 
-@keys_from_str
-class GBAPokemonOthersLogicKeyIndex:
-    __doc__ = ", ".join(
-        k.name for k in GBAPokemonOthersKeyIndex if not k.name.startswith("SPACE")
-    )
+
+class GBAPokemonOthersKeyIndex(IntEnum):
+    NUM_0 = 0
+    NUM_1 = auto()
+    NUM_2 = auto()
+    NUM_3 = auto()
+    NUM_4 = auto()
+    SPACE_1 = auto()
+    NUM_5 = auto()
+    NUM_6 = auto()
+    NUM_7 = auto()
+    NUM_8 = auto()
+    NUM_9 = auto()
+    SPACE_2 = auto()
+    EXCLAMATION = auto()
+    QUESTION = auto()
+    MALE = auto()
+    FEMALE = auto()
+    SLASH = auto()
+    HYPHEN = auto()
+    SPACE_3 = auto()
+    ELLIPSIS = auto()
+    QUOTE_DOUBLE_OPEN = auto()
+    QUOTE_DOUBLE_CLOSE = auto()
+    QUOTE_SINGLE_OPEN = auto()
+    QUOTE_SINGLE_CLOSE = auto()
+    SPACE_4 = auto()
+
+
+class GBAPokemonOthersLogicKeyIndex(IntEnum):
+    NUM_0 = 0
+    NUM_1 = auto()
+    NUM_2 = auto()
+    NUM_3 = auto()
+    NUM_4 = auto()
+    NUM_5 = auto()
+    NUM_6 = auto()
+    NUM_7 = auto()
+    NUM_8 = auto()
+    NUM_9 = auto()
+    EXCLAMATION = auto()
+    QUESTION = auto()
+    MALE = auto()
+    FEMALE = auto()
+    SLASH = auto()
+    HYPHEN = auto()
+    ELLIPSIS = auto()
+    QUOTE_DOUBLE_OPEN = auto()
+    QUOTE_DOUBLE_CLOSE = auto()
+    QUOTE_SINGLE_OPEN = auto()
+    QUOTE_SINGLE_CLOSE = auto()
 
 class ItemPockets(IntEnum):
     ITEMS = 1

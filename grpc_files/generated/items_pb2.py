@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bitems.proto\x12\x05items\"I\n\x12GetAllItemsRequest\x12\x11\n\tgame_file\x18\x01 \x01(\x0c\x12\x14\n\x07game_id\x18\x02 \x01(\x05H\x00\x88\x01\x01\x42\n\n\x08_game_id\"\x88\x01\n\x11\x43ompiledItemProto\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06pocket\x18\x03 \x01(\t\x12\x11\n\tpocket_id\x18\x04 \x01(\x05\x12\x11\n\titem_type\x18\x05 \x01(\t\x12\x14\n\x0citem_type_id\x18\x06 \x01(\x05\x12\r\n\x05price\x18\x07 \x01(\x05\"\x93\x01\n\x13GetAllItemsResponse\x12\x34\n\x05items\x18\x01 \x03(\x0b\x32%.items.GetAllItemsResponse.ItemsEntry\x1a\x46\n\nItemsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x05\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.items.CompiledItemProto:\x02\x38\x01\x32T\n\x0cItemsService\x12\x44\n\x0bGetAllItems\x12\x19.items.GetAllItemsRequest\x1a\x1a.items.GetAllItemsResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0bitems.proto\x12\x05items\"S\n\x12GetAllItemsRequest\x12\x11\n\tgame_file\x18\x01 \x01(\x0c\x12\x19\n\x0c\x63urrent_game\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0f\n\r_current_game\"\x88\x01\n\x11\x43ompiledItemProto\x12\n\n\x02id\x18\x01 \x01(\x05\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06pocket\x18\x03 \x01(\t\x12\x11\n\tpocket_id\x18\x04 \x01(\x05\x12\x11\n\titem_type\x18\x05 \x01(\t\x12\x14\n\x0citem_type_id\x18\x06 \x01(\x05\x12\r\n\x05price\x18\x07 \x01(\x05\"\x93\x01\n\x13GetAllItemsResponse\x12\x34\n\x05items\x18\x01 \x03(\x0b\x32%.items.GetAllItemsResponse.ItemsEntry\x1a\x46\n\nItemsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x05\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.items.CompiledItemProto:\x02\x38\x01\x32T\n\x0cItemsService\x12\x44\n\x0bGetAllItems\x12\x19.items.GetAllItemsRequest\x1a\x1a.items.GetAllItemsResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,13 +34,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETALLITEMSRESPONSE_ITEMSENTRY']._loaded_options = None
   _globals['_GETALLITEMSRESPONSE_ITEMSENTRY']._serialized_options = b'8\001'
   _globals['_GETALLITEMSREQUEST']._serialized_start=22
-  _globals['_GETALLITEMSREQUEST']._serialized_end=95
-  _globals['_COMPILEDITEMPROTO']._serialized_start=98
-  _globals['_COMPILEDITEMPROTO']._serialized_end=234
-  _globals['_GETALLITEMSRESPONSE']._serialized_start=237
-  _globals['_GETALLITEMSRESPONSE']._serialized_end=384
-  _globals['_GETALLITEMSRESPONSE_ITEMSENTRY']._serialized_start=314
-  _globals['_GETALLITEMSRESPONSE_ITEMSENTRY']._serialized_end=384
-  _globals['_ITEMSSERVICE']._serialized_start=386
-  _globals['_ITEMSSERVICE']._serialized_end=470
+  _globals['_GETALLITEMSREQUEST']._serialized_end=105
+  _globals['_COMPILEDITEMPROTO']._serialized_start=108
+  _globals['_COMPILEDITEMPROTO']._serialized_end=244
+  _globals['_GETALLITEMSRESPONSE']._serialized_start=247
+  _globals['_GETALLITEMSRESPONSE']._serialized_end=394
+  _globals['_GETALLITEMSRESPONSE_ITEMSENTRY']._serialized_start=324
+  _globals['_GETALLITEMSRESPONSE_ITEMSENTRY']._serialized_end=394
+  _globals['_ITEMSSERVICE']._serialized_start=396
+  _globals['_ITEMSSERVICE']._serialized_end=480
 # @@protoc_insertion_point(module_scope)

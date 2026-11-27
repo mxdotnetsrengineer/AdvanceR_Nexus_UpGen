@@ -8,14 +8,6 @@ class ConfigFacade:
         self._config = config_service
         self._translator = translations_service
 
-    def get_language_confirmation(self, language: AvailableLanguages) -> tuple[str, str]:
-        message = self._translator.translate(
-            "menu.messages.language_updated",
-            locale=language.name,
-            language=language.name,
-        )
-        return language.name, message
-
     def get_language_cookie_data(self, language: AvailableLanguages) -> tuple[str, str, int]:
         message = self._translator.translate(
             "menu.messages.language_updated",

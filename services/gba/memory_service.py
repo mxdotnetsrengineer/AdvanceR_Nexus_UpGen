@@ -8,7 +8,7 @@ class GBAMemoryService:
             self,
             translations_service: TranslationsService,
         ):
-            self.game_file: bytearray | None = None
+            self.game_file: bytes | bytearray | None = None
             self.free_space_offset: int = 0
             self.translator = translations_service
     

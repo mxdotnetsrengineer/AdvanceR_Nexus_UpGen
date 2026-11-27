@@ -34,8 +34,9 @@ class StatsService:
 
     # Public Methods
     @when_enabled("BASE_STATS", default=True)
-    def get_all_species_data(self, game_file: bytearray) -> list[CompiledBaseStats]:
+    def load_all_species(self, game_file: bytearray) -> list[CompiledBaseStats]:
         """Read and compile base stats, names, and evolution stages for all Pokémon species."""
+        self.stats = []
         game_size = len(game_file)
         stats_offset = self.config.get("POKEMON_STATS_OFFSET")
         names_offset = self.config.get("POKEMON_NAMES_OFFSET")
@@ -154,7 +155,7 @@ class StatsService:
                 return
             existing_pokemon.evolution_stage = stage
         else:
-            stats_data = self.__allocate_stats_data(
+            stats_data = self._allocate_stats_data(
                 game_file, stats_table_offset, names_table_offset, species_id, struct_size, stage, is_mega
             )
             if stats_data is None:
@@ -165,7 +166,7 @@ class StatsService:
 
         ancestors.add(species_id)
         try:
-            for evo_id, evo_is_mega in self.__get_species_evolutions(game_file, evos_table_offset, species_id):
+            for evo_id, evo_is_mega in self._get_species_evolutions(game_file, evos_table_offset, species_id):
                 self._allocate_family_recursive(
                     game_file=game_file,
                     stats_table_offset=stats_table_offset,
@@ -181,7 +182,7 @@ class StatsService:
         finally:
             ancestors.remove(species_id)
 
-    def __get_species_evolutions(
+    def _get_species_evolutions(
         self,
         game_file: bytearray,
         evos_table_offset: int,
@@ -196,6 +197,7 @@ class StatsService:
             return []
 
         # Evolution entry struct (8 bytes): [method: u16, param: u16, target_species: u16, unused: u16]
+        target_species_field_offset = 4
         evolutions: list[tuple[int, bool]] = []
 
         u16_fields_per_entry = 4
@@ -222,7 +224,7 @@ class StatsService:
 
         return evolutions
 
-    def __allocate_stats_data(
+    def _allocate_stats_data(
         self,
         game_file: bytearray,
         stats_table_offset: int,

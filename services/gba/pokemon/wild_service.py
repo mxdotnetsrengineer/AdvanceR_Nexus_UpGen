@@ -35,6 +35,7 @@ class WildService:
         self.wild_slot_struct_size = self.config.get("WILD_SLOT_STRUCT_SIZE")
         
         self._randomized_slots_offsets: set[int] = set()
+        self._slots_offset_cache: dict[tuple[int, int, int], int | None] = {}
                 
     # Public Methods
     def get_wild_data(self,game_file: bytearray, species_list: list[CompiledBaseStats]) -> CompiledWildEvents:
@@ -60,21 +61,24 @@ class WildService:
         game_file: bytearray,
     ) -> None:
         """Locate wild encounter data for a map and replace its grass encounter slots."""
-        if not selected_species:
+        if not selected_species or wild_table_offset is None or wild_table_offset < 0:
             return
 
-        wild_info_offset = self.__validate_and_get_wild_offset(bank,compiled_map, wild_table_offset,game_file)
+        slots_list_offset = self._resolve_slots_list_offset(
+            game_file, wild_table_offset, bank.bank_id, compiled_map.map_id
+        )
+        if slots_list_offset is None or slots_list_offset in self._randomized_slots_offsets:
+            return
 
-        if wild_info_offset is not None:
-            self.__save_randomized_wild_slots(
-                game_file=game_file,
-                wild_info_offset=wild_info_offset,
-                wild_grass_slot_count=wild_grass_slot_count,
-                bank=bank,
-                compiled_map=compiled_map,
-                selected_species=selected_species,
-                species_by_id=species_by_id,
-            )
+        self._save_randomized_wild_slots(
+            game_file=game_file,
+            slots_list_offset=slots_list_offset,
+            wild_grass_slot_count=wild_grass_slot_count,
+            bank=bank,
+            compiled_map=compiled_map,
+            selected_species=selected_species,
+            species_by_id=species_by_id,
+        )
 
     def select_wild_species(
         self,
@@ -89,17 +93,17 @@ class WildService:
         game_size = len(game_file)
         if wild_table_offset is None or wild_table_offset < 0 or not wild_candidates:
             return []
-        slots_list_offset = self.__get_wild_encouter_slots(
-            bank, compiled_map, wild_table_offset, game_file, self._randomized_slots_offsets
+        
+        slots_list_offset = self._resolve_slots_list_offset(
+            game_file, wild_table_offset, bank.bank_id, compiled_map.map_id
         )
         if slots_list_offset is None or slots_list_offset < 0 or slots_list_offset >= game_size:
             return []
 
-        if self.config.get("CURRENT_DIFFICULTY"):
-            if not self.difficulty.get_difficulty_pools(wild_grass_slot_count, wild_candidates):
-                return []
+        if not self.difficulty.get_difficulty_pools(wild_grass_slot_count, wild_candidates):
+            return []
 
-        self.__reset_used_candidates()
+        self._reset_used_candidates()
         selected_species: list[CompiledBaseStats] = []
 
         for slot_idx in range(wild_grass_slot_count):
@@ -111,15 +115,15 @@ class WildService:
             avg_level = (min_level + max_level) / 2
 
             chosen_pool = self.difficulty.get_chosen_pool(avg_level)
-            available_elements = self.__filter_to_unique_candidates(wild_candidates, chosen_pool)
-            selected_species.append(self.__pick_candidate(available_elements))
+            available_elements = self._filter_to_unique_candidates(wild_candidates, chosen_pool)
+            selected_species.append(self._pick_candidate(available_elements))
 
         selected_species.sort(key=attrgetter("bst"))
         return selected_species
     # End Public Methods
     
     # Private Methods
-    def __find_wild_info_offset(
+    def _find_wild_info_offset(
         self,
         game_file: bytearray,
         wild_table_offset: int,
@@ -147,60 +151,50 @@ class WildService:
 
         return None
 
-    def __validate_and_get_wild_offset(
+    def _resolve_slots_list_offset(
         self,
-        bank: CompiledBank,
-        compiled_map: CompiledMap,
-        wild_table_offset: int,
         game_file: bytearray,
+        wild_table_offset: int,
+        bank_id: int,
+        map_id: int,
     ) -> int | None:
-        """Locate wild encounter info offset for a given map."""
-        if wild_table_offset is None or wild_table_offset < 0:
-            return None
+        """Resolve and cache the grass encounter slots offset for a given (table, bank, map)."""
+        cache_key = (wild_table_offset, bank_id, map_id)
+        if cache_key in self._slots_offset_cache:
+            return self._slots_offset_cache[cache_key]
 
-        return self.__find_wild_info_offset(
+        wild_info_offset = self._find_wild_info_offset(
             game_file=game_file,
             wild_table_offset=wild_table_offset,
-            bank_id=bank.bank_id,
-            map_id=compiled_map.map_id,
+            bank_id=bank_id,
+            map_id=map_id,
         )
+        if wild_info_offset is None:
+            self._slots_offset_cache[cache_key] = None
+            return None
 
-    def __get_wild_encouter_slots(
-            self,
-            bank: CompiledBank,
-            compiled_map: CompiledMap,
-            wild_table_offset: int,
-            game_file: bytearray,
-            randomized_offsets: set[int],
-        ) -> int | None:
-            """Resolve the grass wild encounter slots offset for a map if not already randomized."""
-            wild_info_offset = self.__find_wild_info_offset(
-                game_file=game_file,
-                wild_table_offset=wild_table_offset,
-                bank_id=bank.bank_id,
-                map_id=compiled_map.map_id,
-            )
-            if wild_info_offset is None:
-                return None
-    
-            slots_ptr_offset = wild_info_offset + GBA_PTR_BYTE_SIZE
-            if slots_ptr_offset + GBA_PTR_BYTE_SIZE > len(game_file):
-                return None
-    
-            slots_list_ptr = game_file[slots_ptr_offset : slots_ptr_offset + GBA_PTR_BYTE_SIZE]
-            slots_list_offset = self.memory.pointer_to_offset(slots_list_ptr)
-    
-            if slots_list_offset is None or slots_list_offset in randomized_offsets:
-                return None
-            
-            return slots_list_offset
+        # Wild info struct (8 bytes): [encounter_rate: u32, slots_list_ptr: u32]
+        slots_entry_offset = wild_info_offset + GBA_PTR_BYTE_SIZE
+        if slots_entry_offset + GBA_PTR_BYTE_SIZE > len(game_file):
+            self._slots_offset_cache[cache_key] = None
+            return None
 
-    def __reset_used_candidates(self) -> None:
+        slots_list_ptr = game_file[slots_entry_offset : slots_entry_offset + GBA_PTR_BYTE_SIZE]
+        slots_list_offset = self.memory.pointer_to_offset(slots_list_ptr)
+
+        if slots_list_offset is None or slots_list_offset < 0 or slots_list_offset >= len(game_file):
+            self._slots_offset_cache[cache_key] = None
+            return None
+
+        self._slots_offset_cache[cache_key] = slots_list_offset
+        return slots_list_offset
+
+    def _reset_used_candidates(self) -> None:
         """Clear used species IDs and names before randomizing a new map's encounter table."""
         self.wild_used_ids.clear()
         self.wild_used_names.clear()
 
-    def __filter_to_unique_candidates(self,fallback_pool: list[CompiledBaseStats], chosen_pool: list[CompiledBaseStats]):
+    def _filter_to_unique_candidates(self,fallback_pool: list[CompiledBaseStats], chosen_pool: list[CompiledBaseStats]):
         available_elements = [
             sp for sp in chosen_pool
             if sp.id not in self.wild_used_ids and sp.name.strip().lower() not in self.wild_used_names
@@ -216,7 +210,7 @@ class WildService:
             available_elements = chosen_pool
         return available_elements
 
-    def __get_previous_wild_specie(
+    def _get_previous_wild_specie(
         self,
         slot_idx: int,
         species_field_offset: int,
@@ -241,16 +235,16 @@ class WildService:
             f"{new_pokemon.name} (#{new_pokemon.id:03d} | BST:{new_pokemon.bst} Nv.{new_min_level}-{new_max_level})"
         )
 
-    def __pick_candidate(self, available_elements: list[CompiledBaseStats]):
+    def _pick_candidate(self, available_elements: list[CompiledBaseStats]):
         chosen_element = random.choice(available_elements)
         self.wild_used_ids.append(chosen_element.id)
         self.wild_used_names.append(chosen_element.name.strip().lower())
         return chosen_element
 
-    def __save_randomized_wild_slots(
+    def _save_randomized_wild_slots(
         self,
         game_file: bytearray,
-        wild_info_offset: int,
+        slots_list_offset: int,
         wild_grass_slot_count: int,
         bank: CompiledBank,
         compiled_map: CompiledMap,
@@ -260,14 +254,7 @@ class WildService:
         """Write randomized species and adjusted levels into each wild encounter slot."""
         game_size = len(game_file)
         # Wild info struct (8 bytes): [encounter_rate: u32, slots_list_ptr: u32]
-        slots_entry_offset = wild_info_offset + GBA_PTR_BYTE_SIZE
-        if slots_entry_offset + GBA_PTR_BYTE_SIZE > game_size:
-            return
-
-        slots_list_ptr = game_file[slots_entry_offset : slots_entry_offset + GBA_PTR_BYTE_SIZE]
-        slots_list_offset = self.memory.pointer_to_offset(slots_list_ptr)
-
-        if slots_list_offset is None or slots_list_offset in self._randomized_slots_offsets:
+        if slots_list_offset in self._randomized_slots_offsets:
             return
 
         self._randomized_slots_offsets.add(slots_list_offset)
@@ -287,7 +274,7 @@ class WildService:
                 new_max_level = self.difficulty.calculate_adjusted_level(old_max_level)
 
             replacements_log.append(
-                self.__get_previous_wild_specie(
+                self._get_previous_wild_specie(
                     slot_idx=slot_idx,
                     species_field_offset=species_field_offset,
                     old_min_level=old_min_level,

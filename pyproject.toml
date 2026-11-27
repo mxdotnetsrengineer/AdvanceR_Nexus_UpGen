@@ -1,0 +1,40 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: Unit tests isolated from external I/O",
+    "integration: Integration tests against FastAPI or gRPC endpoints",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+    "api",
+    "decorators",
+    "enums",
+    "exceptions",
+    "facades",
+    "games",
+    "grpc_files/servicers",
+    "helpers",
+    "models",
+    "services",
+]
+omit = [
+    "tests/*",
+    "examples/*",
+    "grpc_files/generated/*",
+    "tools/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 70
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
