@@ -19,11 +19,15 @@ All string values prefixed with `0x` are automatically parsed into base-16 integ
 * **`GRPC_CERT_PATH` / `GRPC_KEY_PATH`** (`str`): Relative or absolute paths to the TLS certificate and private key used by the gRPC server (`grpc_files/server.crt`, `grpc_files/server.key`).
 * **`REDIS_HOST` / `REDIS_PORT` / `REDIS_DB`** (`str` / `int`): Connection parameters for the async Redis cache client (`"127.0.0.1"`, `6379`, `0`).
 * **`LANGUAGE_COOKIE_MAX_AGE`** (`int`): Expiration time in seconds for the HTTP-only `app_language` cookie set by the FastAPI `/config/language` endpoint (default `604800` / 7 days).
+* **`GLOBAL_MAX_UPLOAD_MB`** (`int`): Maximum allowed upload size in megabytes for ROM files submitted to the FastAPI endpoints (default `32`).
+* **`APP_ENV`** (`str`): Runtime environment mode (`"development"` or `"prod"`). Setting `"prod"` disables `/docs`, `/redoc`, and `/openapi.json`.
+* **`CORS_ALLOWED_ORIGINS`** (`list[str]` / `str`): Allowed frontend origins configured in FastAPI `CORSMiddleware` (default `["http://localhost:3000", "http://127.0.0.1:3000"]`).
+* **`PYTEST_OUTPUT_MODE`** (`str`): Controls custom Pytest terminal formatting in `tests/conftest.py` (`"DEV"` for raw function names or `"NAME"` for humanized labels).
 
 ## 2. Transient Runtime State
 
 During initialization and execution, the system manages transient state in memory rather than persisting it to JSON files:
 
-* **`game_file`** (`bytearray`): Loaded by `FileService.open_game()` inside `{Console}{Series}CoreFactory._create_memory_service()`. Holds the modified binary buffer before writing it to disk.
+* **`game_file`** (`bytes | bytearray`): Loaded via `FileService.open_game()` (mutable `bytearray` for randomization) or `FileService.open_game_readonly()` (`lru_cache`-backed `bytes` for read-only API/gRPC queries).
 * **`free_space_offset`** (`int`): Starts at `FREE_SPACE_START`. Whenever a service injects new bytecode (such as `EventsService` writing randomized Pokéball scripts), this pointer advances automatically so consecutive writes never overlap.
 * **`available_language`** (`bool`): Set inside `current_config` by `init_global_config()` to indicate whether `CURRENT_LANGUAGE` is natively supported (`ES_MX` / `EN_US`).

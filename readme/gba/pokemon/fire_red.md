@@ -15,8 +15,8 @@ Below is a reference example of how these constants are structured inside the co
 * **`MAP_NAMES_TABLE_OFFSET`** (`hex str`): Internal pointer table offset mapping out the text addresses for region/location names.
 * **`REGION_MAP_BYTE`** (`int`): Byte offset within each map header (`map_header`) where the `regionMapSectionId` (map name ID) is stored.
 * **`GAME_START`** (`hex str`): Base index shift for map names in the text table (e.g., `0x58` aligns entry `0` with *Pallet Town* in *FireRed*).
-* **`BANKS_TO_PRINT`** (`int`): Upper limit of map banks the parser loop iterates through during reverse engineering.
-* **`MAPS_PER_BANK_TO_PRINT`** (`int`): Maximum number of individual maps evaluated sequentially per bank.
+* **`MAX_BANKS`** (`int`): Upper limit of map banks the parser loop iterates through during reverse engineering.
+* **`MAX_MAPS_PER_BANK`** (`int`): Maximum number of individual maps evaluated sequentially per bank.
 
 #### Items & Pokéball Events
 * **`ITEMS_POINTER_OFFSET`** (`hex str`): File address containing the master pointer to the global item structure table.

@@ -15,7 +15,7 @@ You can execute the test suite either through the interactive terminal menu or d
    * **`1. All Tests (Unit & Integration)`** (`pytest -v`)
    * **`2. Unit Tests Only`** (`pytest tests/unit -v`)
    * **`3. Integration Tests Only`** (`pytest tests/integration -v`)
-   * **`4. All Tests with Coverage Report`** (`pytest --cov=services --cov=facades --cov=api --cov-report=term-missing -v`)
+   * **`4. All Tests with Coverage Report`** (`pytest --cov`)
 
 ### Option B: Direct CLI Commands
 With your virtual environment activated (`.venv`):
@@ -30,8 +30,8 @@ pytest tests/unit -v
 # Run integration tests only
 pytest tests/integration -v
 
-# Run tests with missing-line coverage report across core layers
-pytest --cov=services --cov=facades --cov=api --cov-report=term-missing -v
+# Run tests with branch coverage report configured in pyproject.toml
+pytest --cov
 ```
 
 ---
@@ -40,12 +40,16 @@ pytest --cov=services --cov=facades --cov=api --cov-report=term-missing -v
 
 ```text
 tests/
-├── conftest.py                       # Shared session, module, and function fixtures
+├── conftest.py                       # Shared fixtures & synthetic FireRed ROM builder
 ├── unit/
+│   ├── menu/
+│   │   └── test_flow.py              # ConsoleMenu navigation & end-to-end difficulty scaling
 │   ├── test_memory.py                # Pointer translation, Gen III string decoding & free-space alignment
-│   └── test_facades.py               # ROM validation errors & mocked GamesProvider delegation
+│   ├── test_facades.py               # ROM validation errors & mocked GamesProvider delegation
+│   └── test_translations.py          # Locale key parity & {placeholder} consistency checks
 └── integration/
-    └── test_config_router.py         # FastAPI endpoints & HttpOnly language cookie verification
+    ├── test_config_router.py         # FastAPI language cookie & invalid locale fallback tests
+    └── test_items_router.py          # Multipart ROM upload, size limit & filename validation tests
 ```
 
 ---
@@ -60,6 +64,8 @@ All test modules automatically inherit reusable fixtures defined in `tests/conft
 | **`error_service`** | `session` | `ErrorService` | Provides an `ErrorService` backed by a silent `LogService(level="NONE")` so tests assert raised `DomainException`s cleanly without polluting stdout. |
 | **`api_client`** | `module` | `TestClient` | Wraps `create_app()` in a FastAPI `TestClient` (powered by `httpx`) for testing HTTP routes, status codes, and response headers/cookies. |
 | **`fake_gba_rom`** | `function` | `bytearray` | Allocates a fresh `64KB` (`0x10000` bytes) in-memory buffer initialized with `0xFF` free-space bytes for isolated binary read/write tests. |
+| **`synthetic_firered_rom`** | `function` | `tuple[bytearray, dict]` | Builds a compact 4KB synthetic GBA ROM with valid item, stats, bank, event, and wild tables alongside matching offset overrides. |
+| **`firered_test_config`** | `function` | `tuple[ConfigService, bytearray, Path]` | Merges real FireRed config settings with synthetic ROM offsets and a temporary output path (`tmp_path`) for isolated randomizer tests. |
 
 ---
 
