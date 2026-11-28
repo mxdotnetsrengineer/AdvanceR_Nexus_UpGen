@@ -18,7 +18,6 @@ class GamesProvider:
         AvailableGames.RADICAL_FIRE_RED: GBAPokemonCoreFactory,
         AvailableGames.EMERALD: GBAPokemonCoreFactory,
         AvailableGames.EMERALD_KAIZO: GBAPokemonCoreFactory,
-        # AvailableGames.PLATINUM: NDSPokemonFactory,
     }
 
     # Public Methods

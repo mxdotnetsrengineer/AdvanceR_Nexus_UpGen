@@ -12,7 +12,6 @@ from services.translations_service import TranslationsService
 from grpc_files.grpc_server import run_grpc, test_grpc
 from examples.grpc.items import execute_get_all_items
 from games.core.games_provider import GamesProvider
-from tools.menu import ConsoleMenu
 
 def run_fastapi(host: str = "127.0.0.1", port: int = 8000) -> None:
     """Start the FastAPI REST server using Uvicorn and open the default browser."""

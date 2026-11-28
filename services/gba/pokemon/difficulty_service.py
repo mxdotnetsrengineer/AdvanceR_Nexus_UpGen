@@ -80,10 +80,6 @@ class DifficultyService:
             if not isinstance(group, DifficultyGroup):
                 continue
 
-            group_max_level = group["max_level"]
-            max_bst = group["max_bst"]
-            max_stage = group["max_evolution_stage"]
-
             # Pre-filter candidates eligible for this evolution stage before expanding BST ranges
             stage_eligible = [
                 sp for sp in wild_candidates

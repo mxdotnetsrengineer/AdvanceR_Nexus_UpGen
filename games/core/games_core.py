@@ -1,3 +1,4 @@
+import redis.asyncio as redis
 from typing import Any
 from abc import ABC, abstractmethod
 from enums.gba.games_enum import AvailableGames

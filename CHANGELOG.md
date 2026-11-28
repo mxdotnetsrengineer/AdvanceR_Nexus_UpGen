@@ -1,6 +1,27 @@
 # Changelog
 
 All notable changes to **AdvanceR Nexus UpGen** will be documented in this file.
+## [v2.1.0] - 2026-11-27
+
+### Added
+- **Multi-Layer Caching (Redis & In-Memory LRU)**: Integrated async `Redis` caching in `ItemsFacade` (`facades/items_facade.py`, `api/app.py`) using SHA-256 ROM hashes and locale keys, added `lru_cache` with `mtime_ns`/size invalidation for read-only ROM loading in `FileService.open_game_readonly()`, cached wild encounter slot offsets in `WildService`, pre-filtered valid random item IDs in `ItemService`, and introduced shared class-level locale caching (`_SHARED_CACHE`) in `TranslationsService`.
+- **Upload Bounds, Path Traversal Guards & HTTP/gRPC Security Hardening**: Implemented bounded chunked ROM upload streaming (`GLOBAL_MAX_UPLOAD_MB`, `32MB` default) in `api/dependencies/game_dependencies.py`, added directory confinement and `.gba` extension checks in `services/file_service.py`, configured `CORSMiddleware` and HTTP security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`) in `api/middlewares/app_middlewares.py`, enforced conditional `secure` cookie flags in `api/routers/config_router.py`, and disabled Swagger/ReDoc/OpenAPI docs automatically when `APP_ENV=prod` (`api/app.py`).
+- **gRPC TLS Certificate Validator & Local Cert Generator**: Added startup certificate existence validation in `grpc_files/grpc_server.py` and created `tools/generate_certificate.py` to generate local self-signed RSA/X.509 certificates (`server.crt`, `server.key`) with SAN support.
+- **Typed Difficulty Models & Environment Variable Overrides**: Introduced `DifficultyConfig` and `DifficultyGroup` frozen dataclasses (`models/difficulty_config.py`, `models/difficulty_group.py`) for type-safe difficulty scaling and added environment variable override support in `ConfigService.load_global()`.
+- **Expanded Test Suites & `pyproject.toml` Coverage Configuration**: Added integration tests for ROM upload validation (`tests/integration/test_items_router.py`), unit tests for menu and difficulty scaling flows (`tests/unit/menu/test_flow.py`), automated translation key/placeholder consistency tests (`tests/unit/test_translations.py`), and centralized `pytest` and branch coverage settings in `pyproject.toml` and `pytest.ini` (`pytest-spec`).
+
+### Changed
+- **Unified `StrEnum` Game Keys (`AvailableGames`) & gRPC Proto Contract**: Converted `AvailableGames` (`enums/gba/games_enum.py`) to `StrEnum` (`"fire_red"`, `"radical_red"`, `"emerald"`, `"emerald_kaizo"`), removed the redundant `GameSelection` enum and `GAMES` list, and updated `grpc_files/protos/items.proto` (`GetAllItemsRequest.current_game`) and `ItemsGrpcServicer` to accept string game keys and raw uploaded ROM bytes.
+- **Worker-Thread Offloading & Standard Python `logging`**: Added `BaseGameFacade._run_in_thread()` (`asyncio.to_thread`) for non-blocking synchronous domain execution and migrated `LogService` (`services/log_service.py`) from `print()` to Python's standard `logging` module with configurable in-memory history retention (`keep_history`).
+- **Domain Service Decoupling & Standard Enums**: Decoupled temporary `self.current_bank` state in `BankService`, renamed config bounds (`BANKS_TO_PRINT` -> `MAX_BANKS`, `MAPS_PER_BANK_TO_PRINT` -> `MAX_MAPS_PER_BANK`), renamed `StatsService.get_all_species_data()` to `load_all_species()` with idempotent list resets, unified `DifficultyService.get_difficulty_pools()` return types, added `fallback_factory` support to `decorators/app_decorators.py`, and replaced docstring-generated `@keys_from_str` enums with standard `IntEnum` definitions in `enums/gba/pokemon/gba_pokemon_enums.py`.
+- **Enum-Driven CLI Navigation & Subprocess Test Runner**: Replaced control-flow exceptions (`_ExitMenuException`, `_GoBackException`) in `ConsoleMenu` (`tools/menu.py`) with `NavAction` (`enums/app_enums.py`) and updated `main.py` to execute Pytest suites via `subprocess.run` with proper `Redis` client cleanup.
+
+### Fixed
+- **Locale Placeholder & Terminology Consistency**: Fixed the `{label}` vs `{language}` placeholder mismatch in `translations/EN_US/menu.json`, aligned binary parsing log keys (`parsing_start`, `parsing_complete`) across `EN_US` and `ES_MX` locales, and removed duplicate warning keys from `ES_MX/messages.json`.
+
+### Removed
+- **Dead Code & Obsolete Artifacts**: Removed `deprecated/factory_example.py`, unused helper/facade methods (`ConfigFacade.get_language_confirmation`), and relocated `compile_protos.ps1` to `tools/compile_protos.ps1`.
+
 ## [v2.0.0] - 2026-11-25
 
 ### Added

@@ -17,7 +17,7 @@
   * **`items_facade.py` (`ItemsFacade`):** Resolves the target game via `GamesProvider` and offloads synchronous binary item extraction to worker threads via `asyncio.to_thread`.
   * **`config_facade.py` (`ConfigFacade`):** Generates localized confirmation messages and cookie expiration metadata (`LANGUAGE_COOKIE_MAX_AGE`).
 * **`grpc_files/`** — Binary RPC layer over HTTP/2 + TLS:
-  * **`protos/` & `compile_protos.ps1`:** Protocol Buffer definitions (`items.proto`) and PowerShell compilation script.
+* **`protos/`:** Protocol Buffer definitions (`items.proto`) compiled via `tools/compile_protos.ps1`.
   * **`generated/`:** Auto-generated Python protobuf and gRPC stub modules (`items_pb2.py`, `items_pb2_grpc.py`).
   * **`servicers/` (`items_servicer.py`):** Async `ItemsGrpcServicer` delegating `GetAllItems` requests through `ItemsFacade` and translating exceptions to gRPC status codes.
   * **`grpc_server.py` (`run_grpc`, `test_grpc`):** Configures and starts the async TLS gRPC server (`port 50051`) and provides the secure client test runner.
@@ -41,12 +41,12 @@
 
 * **`config/`** — Declarative JSON configurations split into `global_config.json`, `options/`, and console/series layouts (`config/gba/pokemon/`) supporting `BASE_CONFIG` inheritance and `feature_flags.json`.
 * **`translations/`** — Localized JSON dictionaries (`EN_US/`, `ES_MX/`) separating user-facing messages, menu labels, warnings, and errors from business logic.
-* **`models/`** — Lightweight `@dataclass` Data Transfer Objects (`GameInput`, `CompiledBank`, `CompiledMap`, `CompiledEvent`, `CompiledBaseStats`, `CompiledItem`, `CompiledWildEvents`, `UIKeyboardPatch`).
-* **`enums/`** — Strongly typed enumerations (`AvailableGames`, `GameSelection`, `AvailableLanguages`, `LogLevels`, item pockets/subcategories, and keyboard index enums).
+* **`models/`** — Lightweight `@dataclass` Data Transfer Objects (`GameInput`, `DifficultyConfig`, `DifficultyGroup`, `CompiledBank`, `CompiledMap`, `CompiledEvent`, `CompiledBaseStats`, `CompiledItem`, `CompiledWildEvents`, `UIKeyboardPatch`).
+* **`enums/`** — Strongly typed enumerations (`AvailableGames` `StrEnum`, `AvailableLanguages`, `NavAction`, `LogLevels`, item pockets/subcategories, and standard `IntEnum` keyboard index enums).
 * **`decorators/`** — Reusable decorators (`app_decorators.py`) for config-driven feature toggling (`@when_enabled`, `@skip_when_enabled`, `@when_any_enabled`) and dynamic `IntEnum` generation (`@keys_from_str`).
 * **`helpers/`** — Static lookup tables, Gen III byte-to-character mappings, original keyboard matrices, and log channel mappings.
-* **`tools/`** — Interactive terminal UI (`menu.py`, `user_selection.py`) powered by `TranslationsService` for multi-language CLI navigation.
-* **`tests/`** — Automated `pytest` suite (`conftest.py`, `unit/test_memory.py`, `unit/test_facades.py`, `integration/test_config_router.py`) covering binary pointer math, Gen III string decoding, facade validations, and FastAPI cookie endpoints.
+* **`tools/`** — Interactive terminal UI (`menu.py`, `user_selection.py`), Protobuf compiler script (`compile_protos.ps1`), and local self-signed TLS certificate generator (`generate_certificate.py`).
+* **`tests/`** — Automated `pytest` suite (`conftest.py`, `unit/test_memory.py`, `unit/test_facades.py`, `unit/test_translations.py`, `unit/menu/test_flow.py`, `integration/test_config_router.py`, `integration/test_items_router.py`) configured in `pyproject.toml`.
 * **`examples/`** — Standalone client usage scripts for testing the REST API (`examples/api/items.py`) and gRPC service (`examples/grpc/items.py`).
 * **`deprecated/`** — Preserves early architectural iterations (`factory_example.py`) for historical reference without impacting active code.
 * **Root Entry Point (`main.py`)** — Bootstraps `ConfigService.load_global()` and routes execution across `ConsoleMenu`, the local Randomizer (`run_randomizer`), the FastAPI REST server (`run_fastapi`), the secure gRPC server/clients (`run_grpc`, `test_grpc`), and the Pytest runner (`run_tests`).

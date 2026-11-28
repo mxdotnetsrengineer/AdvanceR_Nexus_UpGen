@@ -37,10 +37,10 @@ This repo is a showcase of how I write clean, scalable, and maintainable Python 
 * **Internationalization (`TranslationsService`):** Loads and flattens locale-specific JSON files (`ES_MX`, `EN_US`) for instant lookups.
 * **Filterable Logging & Exception System (`LogService`):** Controls console output channels (`NONE`, `INFO`, `WARNING`, `ERROR`, `ERROR_AND_WARNING`, `ALL`) and raises dynamically mapped exceptions based on error keys.
 * **Interactive Multi-Language Console Menu (`ConsoleMenu`):** Provides a responsive CLI interface (`tools/menu.py`) with real-time language switching (`EN_US` / `ES_MX`), screen clearing, and hotkey navigation (`ESC` to exit, `Backspace` / `0` to go back across steps).
-* **Redis Binary Data Caching (`BaseGame` & `{Console}{Series}Game`):** Uses `redis.asyncio` to serialize and cache compiled map banks, species stats, and item tables for 1 hour (`ex=3600`), avoiding redundant file scans on consecutive runs.
-* **REST FastAPI Layer & Domain Facades (`api/` & `facades/`):** Exposes HTTP endpoints (`POST /gba/pokemon/items`, `PATCH /config/language`) backed by domain facades (`ItemsFacade`, `ConfigFacade`), in-memory ROM validation, `asyncio.to_thread` offloading, HTTP-only `app_language` cookies, request-timing middleware, and centralized HTTP exception handlers.
-* **Secure Async gRPC Server & Client (`grpc_files/`):** Exposes parsed game data (`GetAllItems` in `ItemsGrpcServicer`) over TLS (`grpc.aio.server`) using Protocol Buffers, delegating execution through `ItemsFacade` for both server-loaded and client-uploaded game files.
-* **Automated Test Suite (`Pytest`):** Includes unit and integration tests under `tests/` (`test_memory.py`, `test_facades.py`, `test_config_router.py`) executable directly from `ConsoleMenu` (`4. Run Tests (Pytest)`) with optional `pytest-cov` coverage reporting.
+* **Multi-Layer Caching (`Redis` & `LRU`):** Uses `redis.asyncio` in both `GBAPokemonGame` and `ItemsFacade` (`game:{GAME}:{SHA256}:{LOCALE}:*`, 1-hour TTL), alongside `lru_cache` read-only ROM buffering (`FileService`), wild slot offset caching (`WildService`), and shared locale caches (`TranslationsService`).
+* **REST FastAPI Layer & Security Hardening (`api/` & `facades/`):** Exposes HTTP endpoints (`POST /gba/pokemon/items`, `PATCH /config/language`) backed by domain facades (`ItemsFacade`, `ConfigFacade`), bounded chunked ROM uploads (`GLOBAL_MAX_UPLOAD_MB`), path traversal guards, `CORSMiddleware`, HTTP security headers, conditional `Secure` cookies, and automatic `/docs` lockdown when `APP_ENV=prod`.
+* **Secure Async gRPC Server & Client (`grpc_files/`):** Exposes parsed game data (`GetAllItems` in `ItemsGrpcServicer`) over TLS (`grpc.aio.server`) using Protocol Buffers (`current_game` string keys), startup certificate validation, and a local self-signed RSA cert generator (`tools/generate_certificate.py`).
+* **Automated Test Suite (`Pytest`):** Includes unit and integration tests under `tests/` (`test_memory.py`, `test_facades.py`, `test_translations.py`, `menu/test_flow.py`, `test_config_router.py`, `test_items_router.py`) configured via `pyproject.toml` and `pytest-spec`, executable directly from `ConsoleMenu`.
 
 ## 🎯 Supported Games
 
@@ -102,8 +102,8 @@ Running `python main.py` launches an interactive, multi-language terminal menu (
 #### 3.2 Adding a New Game
 Adding support for a new title only requires updating a few files without touching the core engine:
 
-1. **Register the Enum (`enums/games_enum.py`):** Add a new identifier to `AvailableGames` (e.g., `RUBY = 6`).
-2. **Create the Game Profile (`config/{console}/{series}`):** Add a JSON configuration file defining the memory offsets, free space start, and feature flags for the new game, and register it in your game config mapping.
+1. **Register the Enum (`enums/gba/games_enum.py`):** Add a new string key to `AvailableGames` (`StrEnum`, e.g., `RUBY = "ruby"`).
+2. **Create the Game Profile (`config/{console}/{series}/`):** Add `{game_key}_config.json` defining the memory offsets, free space start, and optional `BASE_CONFIG` inheritance.
 3. **Implement the Game Class (`games/{console}/{series}/`):** Create a new class inheriting from `{console}{series}Game` and override `_apply_game_specific_changes()` if the title requires custom logic.
 4. **Register in the Factory (`games/core/{console}_{series}_core.py` & `games/core/games_provider.py`):** Map the new `AvailableGames` enum to its corresponding game class and factory provider.
 
@@ -177,26 +177,27 @@ When refactoring this codebase from procedural helper scripts into an extensible
 flowchart TD
     subgraph Presentation ["1. Entry, Transport & Testing Layer"]
         CLI["ConsoleMenu<br/>(tools/menu.py)"]
-        REST["FastAPI REST API<br/>(api/routers/)"]
-        GRPC["gRPC Server<br/>(grpc_files/servicers/)"]
-        Tests["Pytest Suite<br/>(tests/)"]
+        REST["FastAPI REST API<br/>(routers / middlewares / chunked upload)"]
+        GRPC["Async TLS gRPC Server<br/>(grpc_files/servicers/)"]
+        Tests["Pytest Suite<br/>(pyproject.toml)"]
     end
 
     subgraph Orchestration ["2. Facades & Factory Layer"]
         Facades["Domain Facades<br/>(ItemsFacade / ConfigFacade)"]
-        Config["ConfigService<br/>(Global & BASE_CONFIG)"]
+        Config["ConfigService<br/>(Global, Env & BASE_CONFIG)"]
         Provider["GamesProvider<br/>(Abstract Factory)"]
     end
 
     subgraph Domain ["3. Game Lifecycle & Cache"]
         Game["GBAPokemonGame<br/>(Template Method)"]
-        Redis[("Redis Cache<br/>(1h TTL)")]
+        Redis[("Redis Cache<br/>(SHA-256 + Locale, 1h TTL)")]
     end
 
-    subgraph Services ["4. Domain & Binary Services"]
-        DomainSvc["Bank / Wild / Item / Stats / Events / Keyboard"]
+    subgraph Services ["4. Domain, File & Binary Services"]
+        DomainSvc["Bank / Wild / Difficulty / Item / Stats / Events / Keyboard"]
+        FileSvc["FileService<br/>(LRU Readonly & Safe Path Guards)"]
         Memory["GBAMemoryService<br/>(Pointers & Structs)"]
-        GameFile[("Game File<br/>(bytearray)")]
+        GameFile[("ROM Buffer<br/>(bytes | bytearray)")]
     end
 
     CLI --> Provider
@@ -204,13 +205,16 @@ flowchart TD
     GRPC --> Facades
     Tests --> REST
     Tests --> Facades
-    Tests --> Memory
-    Facades --> Provider
+    Tests --> Game
+    Facades <-->|get / set| Redis
+    Facades -->|to_thread| Provider
     Config --> Provider
+    Provider --> FileSvc
     Provider --> Game
     Game <-->|mget / pipeline| Redis
     Game --> DomainSvc
     DomainSvc --> Memory
+    FileSvc --> GameFile
     Memory --> GameFile
 ```
 
@@ -233,7 +237,7 @@ flowchart TD
 * **Constructor Dependency Injection (`services/`):** Injects shared services and the in-memory `bytearray` game buffer without tight coupling.
 * **Data Transfer Object (`models/`):** Represents parsed banks, maps, events, stats, and items as strongly typed `@dataclass` payloads.
 * **Strategy / Declarative Patching (`UIKeyboardPatch`):** Drives keyboard layout transformations from declarative data structures rather than hardcoded indices.
-* **Custom Decorators & Metaprogramming (`decorators/`):** Controls pipeline steps via config flags (`@when_enabled`, `@skip_when_enabled`) and generates `IntEnum` definitions dynamically (`@keys_from_str`).
+* **Custom Decorators (`decorators/`):** Controls pipeline steps via config flags (`@when_enabled`, `@skip_when_enabled`, `@when_any_enabled`) with optional `fallback_factory` defaults.
 * **Facade (`facades/`):** Simplifies ROM validation, in-memory loading, thread offloading, and configuration responses behind clean interfaces (`ItemsFacade`, `ConfigFacade`) shared by both FastAPI and gRPC
 
 > 📖 For detailed locations, rationale, and architectural trade-offs for each pattern, see the [Design Patterns & Architecture Deep Dive](./readme/architecture.md).
