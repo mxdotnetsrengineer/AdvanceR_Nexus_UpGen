@@ -1,6 +1,5 @@
 import os
 import sys
-from pathlib import Path
 from enums.gba.games_enum import AvailableGames
 from enums.app_enums import AvailableLanguages, NavAction
 from tools.user_selection import UserSelection

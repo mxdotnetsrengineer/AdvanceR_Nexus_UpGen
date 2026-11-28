@@ -77,7 +77,6 @@ class ItemService:
 
     @staticmethod
     def execute_item_function(
-    __self,
     game_file: bytearray,
     event: CompiledEvent,
     item_handler: Callable[[bytearray], bytes | bytearray],

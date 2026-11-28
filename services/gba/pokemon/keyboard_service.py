@@ -1,4 +1,3 @@
-from typing import Any
 from enums.gba.games_enum import AvailableGames
 from enums.gba.pokemon.gba_pokemon_enums import GBAPokemonKeyIndex, GBAPokemonLogicKeyIndex, GBAPokemonOthersKeyIndex, GBAPokemonOthersLogicKeyIndex
 from models.gba.pokemon.game_ui_keyboard import GameUIKeyboard
